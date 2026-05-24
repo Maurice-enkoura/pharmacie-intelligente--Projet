@@ -13,8 +13,10 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-// Initialiser l'auth store
+// Initialiser l'auth store AVANT de monter l'app
 const authStore = useAuthStore()
 authStore.init()
+
+console.log('App initialisée, authStore:', authStore.user?.email)
 
 app.mount('#app')

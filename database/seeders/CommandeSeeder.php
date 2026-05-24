@@ -7,6 +7,7 @@ use App\Models\Commande;
 use App\Models\LigneCommande;
 use App\Models\Fournisseur;
 use App\Models\Medicament;
+use Carbon\Carbon;
 
 class CommandeSeeder extends Seeder
 {
@@ -15,11 +16,16 @@ class CommandeSeeder extends Seeder
         $fournisseurs = Fournisseur::all();
         $medicaments = Medicament::all();
         
+        if ($fournisseurs->isEmpty() || $medicaments->isEmpty()) {
+            $this->command->info('Données manquantes pour les commandes');
+            return;
+        }
+        
         // Commande 1 - En attente
         $commande1 = Commande::create([
             'numero_commande' => 'CMD-20250001',
             'fournisseur_id' => $fournisseurs[0]->id,
-            'date_commande' => now()->subDays(5),
+            'date_commande' => Carbon::now()->subDays(5),
             'statut' => 'en_attente',
             'montant_total' => (1200 * 50) + (800 * 30)
         ]);
@@ -46,7 +52,7 @@ class CommandeSeeder extends Seeder
         $commande2 = Commande::create([
             'numero_commande' => 'CMD-20250002',
             'fournisseur_id' => $fournisseurs[1]->id,
-            'date_commande' => now()->subDays(10),
+            'date_commande' => Carbon::now()->subDays(10),
             'statut' => 'recue_partielle',
             'montant_total' => (2500 * 20) + (1500 * 40)
         ]);
@@ -73,7 +79,7 @@ class CommandeSeeder extends Seeder
         $commande3 = Commande::create([
             'numero_commande' => 'CMD-20250003',
             'fournisseur_id' => $fournisseurs[2]->id,
-            'date_commande' => now()->subDays(15),
+            'date_commande' => Carbon::now()->subDays(15),
             'statut' => 'recue_complete',
             'montant_total' => (3500 * 10) + (2000 * 25)
         ]);
@@ -100,7 +106,7 @@ class CommandeSeeder extends Seeder
         $commande4 = Commande::create([
             'numero_commande' => 'CMD-20250004',
             'fournisseur_id' => $fournisseurs[3]->id,
-            'date_commande' => now(),
+            'date_commande' => Carbon::now(),
             'statut' => 'en_attente',
             'montant_total' => (1200 * 60) + (600 * 45)
         ]);
@@ -122,5 +128,7 @@ class CommandeSeeder extends Seeder
             'prix_unitaire' => 600,
             'sous_total' => 600 * 45
         ]);
+        
+        $this->command->info('Commandes créées avec succès !');
     }
 }

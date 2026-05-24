@@ -1,59 +1,90 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 💊 Pharmacie Intelligente - Application de Gestion Pharmaceutique
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## 📋 Présentation du projet
 
-## About Laravel
+**Pharmacie Intelligente** est une application web complète de gestion de pharmacie développée dans le cadre du module **Technologies Web Backend** (Licence 3 - ISI Groupe, Année académique 2025-2026) sous l'encadrement de **Robert DIASSÉ**.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+L'application permet la gestion complète d'une pharmacie : catalogue de médicaments, gestion des stocks avec alertes automatiques, ventes avec ou sans ordonnance, gestion des clients, fournisseurs et commandes, ainsi que des rapports détaillés.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 👥 Acteurs et leurs rôles
 
-## Learning Laravel
+| Rôle | Droits | Identifiants |
+|------|--------|--------------|
+| **Admin** | Gestion globale : catalogue, stocks, fournisseurs, commandes, rapports, utilisateurs | admin@pharmacie.com / password |
+| **Pharmacien** | Gestion : médicaments, stocks, ventes, clients | pharmacien@pharmacie.com / password |
+| **Caissier** | Enregistrement des ventes uniquement + consultation clients | caissier@pharmacie.com / password |
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Détail des permissions
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Fonctionnalité | Admin | Pharmacien | Caissier |
+|----------------|-------|------------|----------|
+| Dashboard | ✅ | ❌ | ❌ |
+| Médicaments (CRUD) | ✅ | ✅ | ❌ |
+| Stock (alertes, entrées) | ✅ | ✅ | ❌ |
+| Ventes (consultation) | ✅ (toutes) | ✅ (toutes) | ✅ (ses ventes) |
+| Ventes (création) | ✅ | ✅ | ✅ |
+| Clients | ✅ | ✅ (création) | ✅ (lecture) |
+| Fournisseurs | ✅ | ❌ | ❌ |
+| Commandes | ✅ | ❌ | ❌ |
+| Rapports | ✅ | ❌ | ❌ |
+| Utilisateurs | ✅ | ❌ | ❌ |
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## ⚙️ Fonctionnalités détaillées
 
-### Premium Partners
+### 1. Gestion des Médicaments & Stock
+- Catalogue complet (nom, DCI, forme, dosage, catégorie)
+- Stock avec seuil d'alerte et date de péremption
+- **Alerte automatique** : stock < seuil OU péremption < 30 jours
+- Entrées de stock par lot (fournisseur, date, quantité, prix achat)
+- Soft delete pour l'archivage des médicaments
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 2. Gestion des Ventes & Ordonnances
+- Vente avec ou sans ordonnance
+- Enregistrement des médicaments d'une ordonnance
+- Reçu de vente avec réduction automatique du stock (Observer)
 
-## Contributing
+### 3. Gestion des Clients
+- Fiche client complète (coordonnées, historique achats)
+- Suivi des médicaments chroniques
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 4. Gestion des Fournisseurs & Commandes
+- Fiche fournisseur complète
+- Bon de commande
+- Réception de commande avec mise à jour automatique du stock
 
-## Code of Conduct
+### 5. Reporting & Dashboard
+- Chiffre d'affaires par période (semaine/mois/année)
+- Top médicaments vendus
+- Produits en rupture ou bientôt périmés
+- Graphiques d'évolution des ventes
+- Export Excel
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## 🗄️ Modèles (Models) et Relations
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Liste des modèles
 
-## License
+| Modèle | Description | Champs principaux |
+|--------|-------------|-------------------|
+| **User** | Utilisateurs | name, email, password, role |
+| **Medicament** | Médicaments | nom, dci, forme, dosage, prix_vente, stock_actuel, seuil_alerte |
+| **Categorie** | Catégories | nom, description |
+| **StockLot** | Lots de stock | lot_number, quantite_initiale, quantite_restante, date_peremption |
+| **Vente** | Ventes | numero_facture, montant_total, mode_paiement, type_vente |
+| **LigneVente** | Détail des ventes | quantite, prix_unitaire, sous_total |
+| **Client** | Clients | nom, prenom, telephone, email, adresse |
+| **Fournisseur** | Fournisseurs | nom, contact, telephone, email, adresse |
+| **Commande** | Commandes | numero_commande, statut, montant_total |
+| **LigneCommande** | Détail des commandes | quantite_commandee, quantite_recue, prix_unitaire |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Diagramme des relations
+Categorie (1) ──────< (n) Medicament
+Medicament (1) ──────< (n) StockLot
+Medicament (1) ──────< (n) LigneVente ──────< (n) Vente (n) ────── (1) Client
+Medicament (1) ──────< (n) LigneCommande ──────< (n) Commande (n) ────── (1) Fournisseur   
+User (1) ──────< (n) Vente 

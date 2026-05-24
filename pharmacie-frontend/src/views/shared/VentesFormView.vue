@@ -1,142 +1,276 @@
 <!-- src/views/shared/VentesFormView.vue -->
 <template>
   <div class="vente-form">
+    <!-- En-tête -->
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Nouvelle vente</h1>
-      <router-link to="/ventes" class="btn-secondary">Retour</router-link>
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">Nouvelle vente</h1>
+        <p class="text-sm text-gray-500 mt-1">Enregistrement d'une transaction client</p>
+      </div>
+      <router-link to="/ventes" class="btn-secondary flex items-center gap-2">
+        ← Retour
+      </router-link>
     </div>
     
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Panier -->
-      <div class="lg:col-span-2 card">
-        <h2 class="text-lg font-semibold mb-4">Panier</h2>
-        
-        <!-- Ajout médicament -->
-        <div class="bg-gray-50 p-4 rounded-lg mb-4">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div class="md:col-span-2">
-              <select v-model="selectedMedicament" class="input-field w-full">
-                <option :value="null">-- Choisir un médicament --</option>
-                <option v-for="med in medicaments" :key="med.id" :value="med">
-                  {{ med.nom }} - {{ med.dosage }} (Stock: {{ med.stock_actuel }})
-                </option>
-              </select>
-            </div>
-            <div>
-              <input 
-                type="number" 
-                v-model="quantite" 
-                min="1"
-                :max="selectedMedicament?.stock_actuel"
-                class="input-field w-full" 
-                placeholder="Qté"
-              >
-            </div>
-            <div>
-              <button 
-                @click="addLigne" 
-                :disabled="!selectedMedicament || quantite < 1"
-                class="btn-primary w-full"
-              >
-                Ajouter
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Tableau panier -->
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-2 text-left">Médicament</th>
-                <th class="px-4 py-2 text-center">Prix unitaire</th>
-                <th class="px-4 py-2 text-center">Quantité</th>
-                <th class="px-4 py-2 text-right">Sous-total</th>
-                <th class="px-4 py-2 text-center"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(ligne, index) in panier" :key="index" class="border-t">
-                <td class="px-4 py-3">
-                  {{ ligne.medicament.nom }}
-                  <span class="text-xs text-gray-500 block">{{ ligne.medicament.dosage }}</span>
-                </td>
-                <td class="px-4 py-3 text-center">{{ formatPrice(ligne.prix_unitaire) }}</td>
-                <td class="px-4 py-3 text-center">
+      <!-- ==================== PANIER ==================== -->
+      <div class="lg:col-span-2">
+        <div class="card">
+          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            🛒 Panier <span v-if="panier.length" class="text-sm text-gray-500">({{ panier.length }} produit(s))</span>
+          </h2>
+          
+          <!-- 🔍 Barre de recherche intelligente -->
+          <div class="bg-gray-50 p-4 rounded-lg mb-4">
+            <div class="relative">
+              <div class="flex items-center gap-2">
+                <div class="relative flex-1">
+                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
+                  <input 
+                    type="text"
+                    v-model="searchQuery"
+                    @input="onSearchInput"
+                    @keyup.enter="selectFirstResult"
+                    placeholder="Rechercher un médicament (nom, DCI, catégorie)..."
+                    class="input-field w-full pl-10"
+                    :class="{ 'border-primary-500 ring-2 ring-primary-200': selectedMedicament }"
+                    autocomplete="off"
+                  >
+                  <button 
+                    v-if="searchQuery"
+                    @click="clearSearch"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div class="w-24">
                   <input 
                     type="number" 
-                    v-model="ligne.quantite" 
-                    @change="updateLigne(ligne)"
+                    v-model="quantite" 
                     min="1"
-                    :max="ligne.medicament.stock_actuel"
-                    class="w-20 text-center border rounded px-2 py-1"
+                    class="input-field w-full text-center" 
+                    placeholder="Qté"
                   >
-                </td>
-                <td class="px-4 py-3 text-right font-medium">{{ formatPrice(ligne.sous_total) }}</td>
-                <td class="px-4 py-3 text-center">
-                  <button @click="removeLigne(index)" class="text-red-500 hover:text-red-700">🗑️</button>
-                </td>
-              </tr>
-            </tbody>
-            <tfoot class="bg-gray-50 font-bold">
-              <tr>
-                <td colspan="3" class="px-4 py-3 text-right">Total :</td>
-                <td class="px-4 py-3 text-right text-lg text-primary-600">{{ formatPrice(total) }}</td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
+                </div>
+                <button 
+                  @click="addSelectedMedicament" 
+                  :disabled="!selectedMedicament || quantite < 1"
+                  class="btn-primary px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Ajouter
+                </button>
+              </div>
+              
+              <!-- Résultats de recherche -->
+              <div v-if="searchResults.length > 0 && searchQuery && !selectedMedicament" class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-y-auto">
+                <div 
+                  v-for="med in searchResults" 
+                  :key="med.id"
+                  @click="selectMedicament(med)"
+                  class="flex items-center justify-between p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
+                >
+                  <div class="flex-1">
+                    <div class="flex items-center flex-wrap gap-2">
+                      <span class="font-medium text-gray-800">{{ med.nom }}</span>
+                      <span class="text-xs text-gray-500">{{ med.dosage }}</span>
+                      <span v-if="med.ordonnance_requise" class="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                        🔒 Ordonnance
+                      </span>
+                      <span v-if="med.stock_actuel < med.seuil_alerte" class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                        ⚠️ Stock bas
+                      </span>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1">
+                      {{ med.dci }} | {{ med.forme }} | {{ med.categorie?.nom || 'Non catégorisé' }}
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="font-semibold text-primary-600">{{ formatPrice(med.prix_vente) }}</div>
+                    <div class="text-xs text-gray-500">Stock: {{ med.stock_actuel }}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Message aucun résultat -->
+              <div v-if="!searching && searchQuery && searchResults.length === 0 && !selectedMedicament" class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl p-4 text-center">
+                <div class="flex flex-col items-center gap-2">
+                  <span class="text-3xl">🔍</span>
+                  <span class="text-gray-500">Aucun médicament trouvé pour "{{ searchQuery }}"</span>
+                  <span class="text-xs text-gray-400">Vérifiez l'orthographe ou ajoutez un nouveau médicament</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Produit sélectionné -->
+            <div v-if="selectedMedicament" class="mt-3 p-2 bg-primary-50 rounded-lg flex justify-between items-center">
+              <div>
+                <span class="text-xs text-gray-500">Produit sélectionné</span>
+                <div class="font-medium text-primary-700">{{ selectedMedicament.nom }} - {{ selectedMedicament.dosage }}</div>
+                <div class="text-xs text-gray-500">Prix: {{ formatPrice(selectedMedicament.prix_vente) }} | Stock: {{ selectedMedicament.stock_actuel }}</div>
+              </div>
+              <button @click="clearSelectedMedicament" class="text-gray-400 hover:text-gray-600 text-sm px-2 py-1 rounded hover:bg-white">
+                ✕ Changer
+              </button>
+            </div>
+            
+            <!-- Indicateur de recherche -->
+            <div v-if="searching" class="mt-2 text-center text-sm text-gray-500">
+              <div class="inline-flex items-center gap-2">
+                <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-primary-600"></div>
+                Recherche en cours...
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tableau panier -->
+          <div v-if="panier.length > 0" class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Médicament</th>
+                  <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Prix unitaire</th>
+                  <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Quantité</th>
+                  <th class="px-4 py-3 text-right text-sm font-semibold text-gray-600">Sous-total</th>
+                  <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(ligne, index) in panier" :key="index" class="border-t hover:bg-gray-50">
+                  <td class="px-4 py-3">
+                    <div>
+                      <span class="font-medium text-gray-800">{{ ligne.medicament.nom }}</span>
+                      <div class="text-xs text-gray-400 mt-0.5">{{ ligne.medicament.dci }} - {{ ligne.medicament.dosage }}</div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-center">{{ formatPrice(ligne.prix_unitaire) }}</td>
+                  <td class="px-4 py-3 text-center">
+                    <input 
+                      type="number" 
+                      v-model="ligne.quantite" 
+                      @change="updateLigne(ligne)"
+                      min="1"
+                      :max="ligne.medicament.stock_actuel"
+                      class="w-20 text-center border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                  </td>
+                  <td class="px-4 py-3 text-right font-medium">{{ formatPrice(ligne.sous_total) }}</td>
+                  <td class="px-4 py-3 text-center">
+                    <button @click="removeLigne(index)" class="text-red-500 hover:text-red-700 transition-colors" title="Supprimer">
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot class="bg-gray-50 border-t">
+                <tr>
+                  <td colspan="3" class="px-4 py-3 text-right font-semibold">Total :</td>
+                  <td class="px-4 py-3 text-right text-xl font-bold text-primary-600">{{ formatPrice(total) }}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          
+          <div v-else class="text-center py-12">
+            <div class="text-5xl mb-3">🛒</div>
+            <p class="text-gray-500">Panier vide</p>
+            <p class="text-sm text-gray-400">Recherchez et ajoutez des médicaments</p>
+          </div>
         </div>
       </div>
       
-      <!-- Informations paiement -->
+      <!-- ==================== PAIEMENT ==================== -->
       <div class="card">
-        <h2 class="text-lg font-semibold mb-4">Paiement</h2>
+        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">💳 Paiement</h2>
         
-        <!-- Client -->
+        <!-- Recherche client -->
         <div class="mb-4">
-          <label class="block text-gray-700 text-sm font-medium mb-2">Client *</label>
-          <div class="flex space-x-2">
-            <select v-model="form.client_id" class="input-field flex-1" required>
-              <option :value="null">Sélectionner</option>
-              <option v-for="client in clients" :key="client.id" :value="client.id">
-                {{ client.prenom }} {{ client.nom }} - {{ client.telephone }}
-              </option>
-            </select>
-            <button @click="showNewClientModal = true" class="btn-secondary">+</button>
+          <label class="block text-gray-700 text-sm font-medium mb-2">Client</label>
+          <div class="relative">
+            <input 
+              type="text"
+              v-model="clientSearchQuery"
+              @input="onClientSearchInput"
+              @focus="clientSearchFocused = true"
+              placeholder="Rechercher par nom, prénom ou téléphone..."
+              class="input-field w-full"
+              autocomplete="off"
+            >
+            <div v-if="clientSearchFocused && clientSearchResults.length > 0" class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+              <div 
+                v-for="client in clientSearchResults" 
+                :key="client.id"
+                @click="selectClient(client)"
+                class="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
+              >
+                <div class="font-medium">{{ client.prenom }} {{ client.nom }}</div>
+                <div class="text-sm text-gray-500">{{ client.telephone }}</div>
+                <div v-if="client.email" class="text-xs text-gray-400">{{ client.email }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <button 
+            v-if="isAdmin || isPharmacien"
+            @click="showNewClientModal = true" 
+            class="text-primary-600 text-sm mt-2 hover:underline flex items-center gap-1"
+          >
+            ➕ Créer un nouveau client
+          </button>
+          <p v-else class="text-xs text-gray-400 mt-2">
+            📌 Contactez l'administrateur pour ajouter un client
+          </p>
+        </div>
+        
+        <!-- Client sélectionné -->
+        <div v-if="selectedClient" class="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="text-xs text-green-600 font-medium">Client sélectionné</p>
+              <p class="font-semibold text-gray-800">{{ selectedClient.prenom }} {{ selectedClient.nom }}</p>
+              <p class="text-sm text-gray-600">{{ selectedClient.telephone }}</p>
+            </div>
+            <button @click="clearSelectedClient" class="text-gray-400 hover:text-gray-600" title="Changer de client">
+              🔄
+            </button>
           </div>
         </div>
         
-        <!-- Type vente -->
+        <!-- Type de vente -->
         <div class="mb-4">
-          <label class="block text-gray-700 text-sm font-medium mb-2">Type de vente *</label>
-          <div class="flex space-x-4">
-            <label class="flex items-center">
-              <input type="radio" v-model="form.type_vente" value="sans_ordonnance" class="mr-2">
-              Sans ordonnance
+          <label class="block text-gray-700 text-sm font-medium mb-2">Type de vente</label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" v-model="form.type_vente" value="sans_ordonnance" class="w-4 h-4 text-primary-600">
+              <span>📄 Sans ordonnance</span>
             </label>
-            <label class="flex items-center">
-              <input type="radio" v-model="form.type_vente" value="avec_ordonnance" class="mr-2">
-              Avec ordonnance
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" v-model="form.type_vente" value="avec_ordonnance" class="w-4 h-4 text-primary-600">
+              <span>📋 Avec ordonnance</span>
             </label>
           </div>
         </div>
         
         <!-- Référence ordonnance -->
         <div v-if="form.type_vente === 'avec_ordonnance'" class="mb-4">
-          <label class="block text-gray-700 text-sm font-medium mb-2">Référence ordonnance *</label>
-          <input type="text" v-model="form.ordonnance_ref" class="input-field w-full">
+          <label class="block text-gray-700 text-sm font-medium mb-2">Référence ordonnance</label>
+          <input 
+            type="text" 
+            v-model="form.ordonnance_ref" 
+            class="input-field w-full" 
+            placeholder="ex: ORD-2025-001"
+          >
         </div>
         
-        <!-- Mode paiement -->
+        <!-- Mode de paiement -->
         <div class="mb-4">
-          <label class="block text-gray-700 text-sm font-medium mb-2">Mode de paiement *</label>
+          <label class="block text-gray-700 text-sm font-medium mb-2">Mode de paiement</label>
           <select v-model="form.mode_paiement" class="input-field w-full">
-            <option value="especes">Espèces</option>
-            <option value="orange_money">Orange Money</option>
-            <option value="wave">Wave</option>
-            <option value="carte">Carte</option>
+            <option value="especes">💰 Espèces</option>
+            <option value="orange_money">📱 Orange Money</option>
+            <option value="wave">🌊 Wave</option>
+            <option value="carte">💳 Carte bancaire</option>
           </select>
         </div>
         
@@ -146,54 +280,105 @@
           <input 
             type="number" 
             v-model="form.montant_paye" 
-            @input="calculateMonnaie"
             class="input-field w-full"
             min="0"
+            step="500"
+            placeholder="0"
           >
         </div>
         
-        <!-- Rendu monnaie -->
-        <div v-if="monnaie > 0" class="mb-4 p-3 bg-green-50 rounded-lg">
-          <p class="text-sm text-green-700">Monnaie à rendre :</p>
-          <p class="text-2xl font-bold text-green-600">{{ formatPrice(monnaie) }}</p>
+        <!-- Monnaie à rendre -->
+        <div v-if="monnaie > 0" class="mb-4 p-3 bg-green-100 rounded-lg">
+          <div class="flex justify-between items-center">
+            <span class="text-green-800">💰 Monnaie à rendre</span>
+            <span class="text-2xl font-bold text-green-700">{{ formatPrice(monnaie) }}</span>
+          </div>
         </div>
         
         <!-- Reste à payer -->
-        <div v-if="reste > 0" class="mb-4 p-3 bg-red-50 rounded-lg">
-          <p class="text-sm text-red-700">Reste à payer :</p>
-          <p class="text-2xl font-bold text-red-600">{{ formatPrice(reste) }}</p>
+        <div v-if="reste > 0" class="mb-4 p-3 bg-red-100 rounded-lg">
+          <div class="flex justify-between items-center">
+            <span class="text-red-800">⚠️ Reste à payer</span>
+            <span class="text-2xl font-bold text-red-700">{{ formatPrice(reste) }}</span>
+          </div>
         </div>
         
-        <!-- Message erreur ordonnance -->
-        <div v-if="ordonnanceError" class="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg">
-          {{ ordonnanceError }}
+        <!-- Message erreur -->
+        <div v-if="errorMessage" class="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+          {{ errorMessage }}
+        </div>
+        
+        <!-- Récapitulatif -->
+        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+          <div class="flex justify-between text-sm mb-1">
+            <span class="text-gray-600">Nombre d'articles :</span>
+            <span class="font-medium">{{ panier.length }}</span>
+          </div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="text-gray-600">Quantité totale :</span>
+            <span class="font-medium">{{ quantiteTotale }}</span>
+          </div>
+          <div class="flex justify-between text-lg font-bold pt-2 border-t mt-2">
+            <span>Total TTC :</span>
+            <span class="text-primary-600">{{ formatPrice(total) }}</span>
+          </div>
         </div>
         
         <!-- Bouton validation -->
         <button 
           @click="submitVente" 
-          :disabled="!canSubmit || loading"
-          class="btn-success w-full py-3 text-lg disabled:opacity-50"
+          :disabled="!canSubmit || loading || panier.length === 0"
+          class="btn-success w-full py-3 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          <span v-if="loading">Traitement...</span>
-          <span v-else>✅ Valider la vente</span>
+          <span v-if="loading" class="flex items-center justify-center gap-2">
+            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            Traitement en cours...
+          </span>
+          <span v-else class="flex items-center justify-center gap-2">
+            ✅ Valider la vente
+          </span>
         </button>
       </div>
     </div>
     
-    <!-- Modal nouveau client -->
-    <div v-if="showNewClientModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full">
-        <h3 class="text-lg font-semibold mb-4">Nouveau client</h3>
-        <div class="space-y-3">
-          <input v-model="newClient.nom" placeholder="Nom" class="input-field w-full">
-          <input v-model="newClient.prenom" placeholder="Prénom" class="input-field w-full">
-          <input v-model="newClient.telephone" placeholder="Téléphone" class="input-field w-full">
-          <input v-model="newClient.email" placeholder="Email" class="input-field w-full">
-          <input v-model="newClient.adresse" placeholder="Adresse" class="input-field w-full">
+    <!-- ==================== MODAL NOUVEAU CLIENT ==================== -->
+    <div v-if="showNewClientModal && (isAdmin || isPharmacien)" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold text-gray-800">➕ Nouveau client</h3>
+          <button @click="closeNewClientModal" class="text-gray-400 hover:text-gray-600">✕</button>
         </div>
-        <div class="flex justify-end space-x-3 mt-6">
-          <button @click="showNewClientModal = false" class="btn-secondary">Annuler</button>
+        
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">Nom *</label>
+              <input v-model="newClient.nom" placeholder="Diop" class="input-field w-full">
+            </div>
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">Prénom *</label>
+              <input v-model="newClient.prenom" placeholder="Aminata" class="input-field w-full">
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Téléphone *</label>
+            <input v-model="newClient.telephone" placeholder="77 123 45 67" class="input-field w-full">
+          </div>
+          
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Email</label>
+            <input v-model="newClient.email" type="email" placeholder="client@email.com" class="input-field w-full">
+          </div>
+          
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Adresse</label>
+            <textarea v-model="newClient.adresse" rows="2" placeholder="Dakar, Sicap Liberté" class="input-field w-full"></textarea>
+          </div>
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6">
+          <button @click="closeNewClientModal" class="btn-secondary">Annuler</button>
           <button @click="saveNewClient" class="btn-primary">Enregistrer</button>
         </div>
       </div>
@@ -202,23 +387,33 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { venteService } from '@/services/vente'
 import { medicamentService } from '@/services/medicament'
 import { clientService } from '@/services/client'
 
+// Router & Auth
 const router = useRouter()
+const authStore = useAuthStore()
 
-const medicaments = ref([])
-const clients = ref([])
+// Rôles
+const isAdmin = computed(() => authStore.isAdmin)
+const isPharmacien = computed(() => authStore.isPharmacien)
+
+// États recherche médicaments
+const searchQuery = ref('')
+const searchResults = ref([])
+const searching = ref(false)
 const selectedMedicament = ref(null)
+let searchTimeout = null
+
+// États panier
 const quantite = ref(1)
 const panier = ref([])
-const loading = ref(false)
-const showNewClientModal = ref(false)
-const ordonnanceError = ref('')
 
+// États formulaire
 const form = ref({
   client_id: null,
   type_vente: 'sans_ordonnance',
@@ -227,6 +422,19 @@ const form = ref({
   montant_paye: 0
 })
 
+// États recherche client
+const clientSearchQuery = ref('')
+const clientSearchResults = ref([])
+const clientSearchFocused = ref(false)
+const selectedClient = ref(null)
+let clientSearchTimeout = null
+
+// États modaux et erreurs
+const loading = ref(false)
+const showNewClientModal = ref(false)
+const errorMessage = ref('')
+
+// Nouveau client
 const newClient = ref({
   nom: '',
   prenom: '',
@@ -235,62 +443,117 @@ const newClient = ref({
   adresse: ''
 })
 
+// ==================== COMPUTED ====================
 const total = computed(() => {
-  return panier.value.reduce((sum, ligne) => sum + ligne.sous_total, 0)
+  return panier.value.reduce((sum, ligne) => sum + (ligne.sous_total || 0), 0)
 })
 
 const reste = computed(() => {
-  return total.value - form.value.montant_paye
+  return Math.max(0, total.value - (form.value.montant_paye || 0))
 })
 
 const monnaie = computed(() => {
-  if (form.value.montant_paye > total.value) {
-    return form.value.montant_paye - total.value
-  }
-  return 0
+  return Math.max(0, (form.value.montant_paye || 0) - total.value)
+})
+
+const quantiteTotale = computed(() => {
+  return panier.value.reduce((sum, ligne) => sum + (ligne.quantite || 0), 0)
 })
 
 const canSubmit = computed(() => {
-  if (!form.value.client_id) return false
-  if (panier.value.length === 0) return false
-  if (form.value.montant_paye < total.value) return false
-  if (form.value.type_vente === 'avec_ordonnance' && !form.value.ordonnance_ref) return false
-  return true
+  return form.value.client_id && 
+         panier.value.length > 0 && 
+         form.value.montant_paye >= total.value &&
+         (form.value.type_vente !== 'avec_ordonnance' || (form.value.ordonnance_ref && form.value.ordonnance_ref.trim()))
 })
 
+// ==================== MÉTHODES ====================
 const formatPrice = (price) => {
+  if (!price && price !== 0) return '0 FCFA'
   return new Intl.NumberFormat('fr-SN', { style: 'currency', currency: 'XOF' }).format(price)
 }
 
-const addLigne = () => {
+// Recherche médicaments avec debounce
+const onSearchInput = () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => searchMedicaments(), 300)
+}
+
+const searchMedicaments = async () => {
+  const query = searchQuery.value.trim()
+  if (!query) {
+    searchResults.value = []
+    searching.value = false
+    return
+  }
+  
+  searching.value = true
+  try {
+    const response = await medicamentService.getAll({ search: query, per_page: 20 })
+    searchResults.value = response.data || []
+  } catch (error) {
+    console.error('Erreur recherche:', error)
+    searchResults.value = []
+  } finally {
+    searching.value = false
+  }
+}
+
+const selectMedicament = (medicament) => {
+  selectedMedicament.value = medicament
+  searchQuery.value = `${medicament.nom} - ${medicament.dosage}`
+  searchResults.value = []
+  searching.value = false
+}
+
+const selectFirstResult = () => {
+  if (searchResults.value.length > 0) {
+    selectMedicament(searchResults.value[0])
+  }
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
+  searchResults.value = []
+  searching.value = false
+}
+
+const clearSelectedMedicament = () => {
+  selectedMedicament.value = null
+  searchQuery.value = ''
+  searchResults.value = []
+  searching.value = false
+}
+
+const addSelectedMedicament = () => {
   if (!selectedMedicament.value || quantite.value < 1) return
   
   // Vérifier ordonnance
   if (selectedMedicament.value.ordonnance_requise && form.value.type_vente === 'sans_ordonnance') {
-    ordonnanceError.value = `⚠️ ${selectedMedicament.value.nom} nécessite une ordonnance`
-    setTimeout(() => { ordonnanceError.value = '' }, 3000)
+    errorMessage.value = `⚠️ ${selectedMedicament.value.nom} nécessite une ordonnance`
+    setTimeout(() => { errorMessage.value = '' }, 3000)
     return
   }
   
   // Vérifier stock
   if (selectedMedicament.value.stock_actuel < quantite.value) {
-    alert(`Stock insuffisant pour ${selectedMedicament.value.nom}`)
+    errorMessage.value = `❌ Stock insuffisant pour ${selectedMedicament.value.nom}`
+    setTimeout(() => { errorMessage.value = '' }, 3000)
     return
   }
   
   const existingIndex = panier.value.findIndex(l => l.medicament_id === selectedMedicament.value.id)
   
   if (existingIndex !== -1) {
-    // Mettre à jour quantité existante
     const newQuantite = panier.value[existingIndex].quantite + quantite.value
     if (selectedMedicament.value.stock_actuel >= newQuantite) {
       panier.value[existingIndex].quantite = newQuantite
       panier.value[existingIndex].sous_total = panier.value[existingIndex].prix_unitaire * newQuantite
     } else {
-      alert(`Stock insuffisant`)
+      errorMessage.value = `❌ Stock insuffisant pour ${selectedMedicament.value.nom}`
+      setTimeout(() => { errorMessage.value = '' }, 3000)
     }
   } else {
-    // Ajouter nouvelle ligne
     panier.value.push({
       medicament_id: selectedMedicament.value.id,
       medicament: selectedMedicament.value,
@@ -300,17 +563,20 @@ const addLigne = () => {
     })
   }
   
-  selectedMedicament.value = null
+  // Réinitialiser
+  clearSelectedMedicament()
   quantite.value = 1
+  errorMessage.value = ''
 }
 
 const updateLigne = (ligne) => {
   if (ligne.medicament.stock_actuel >= ligne.quantite) {
     ligne.sous_total = ligne.prix_unitaire * ligne.quantite
   } else {
-    alert(`Stock insuffisant`)
+    errorMessage.value = `❌ Stock insuffisant pour ${ligne.medicament.nom}`
     ligne.quantite = ligne.medicament.stock_actuel
     ligne.sous_total = ligne.prix_unitaire * ligne.quantite
+    setTimeout(() => { errorMessage.value = '' }, 3000)
   }
 }
 
@@ -318,25 +584,77 @@ const removeLigne = (index) => {
   panier.value.splice(index, 1)
 }
 
-const calculateMonnaie = () => {
-  // Computed gère automatiquement
+// Recherche client avec debounce
+const onClientSearchInput = () => {
+  if (clientSearchTimeout) clearTimeout(clientSearchTimeout)
+  clientSearchTimeout = setTimeout(() => searchClients(), 300)
 }
 
-const saveNewClient = async () => {
+const searchClients = async () => {
+  const query = clientSearchQuery.value.trim()
+  if (!query) {
+    clientSearchResults.value = []
+    return
+  }
+  
   try {
-    const response = await clientService.create(newClient.value)
-    clients.value.push(response)
-    form.value.client_id = response.id
-    showNewClientModal.value = false
-    newClient.value = { nom: '', prenom: '', telephone: '', email: '', adresse: '' }
-    await loadClients()
+    const response = await clientService.getAll({ search: query, per_page: 10 })
+    clientSearchResults.value = response.data || []
   } catch (error) {
-    alert('Erreur lors de la création du client')
+    console.error('Erreur recherche client:', error)
+    clientSearchResults.value = []
   }
 }
 
+const selectClient = (client) => {
+  form.value.client_id = client.id
+  selectedClient.value = client
+  clientSearchQuery.value = `${client.prenom} ${client.nom} - ${client.telephone}`
+  clientSearchResults.value = []
+  clientSearchFocused.value = false
+}
+
+const clearSelectedClient = () => {
+  form.value.client_id = null
+  selectedClient.value = null
+  clientSearchQuery.value = ''
+}
+
+// Modal client
+const closeNewClientModal = () => {
+  showNewClientModal.value = false
+  newClient.value = { nom: '', prenom: '', telephone: '', email: '', adresse: '' }
+}
+
+const saveNewClient = async () => {
+  if (!newClient.value.nom || !newClient.value.prenom || !newClient.value.telephone) {
+    alert('Veuillez remplir tous les champs obligatoires (*)')
+    return
+  }
+  
+  try {
+    const response = await clientService.create(newClient.value)
+    const createdClient = response.data || response
+    selectClient(createdClient)
+    closeNewClientModal()
+  } catch (error) {
+    console.error('Erreur création client:', error)
+    let msg = 'Erreur lors de la création du client'
+    if (error.response?.data?.message) msg = error.response.data.message
+    if (error.response?.data?.errors) {
+      msg = Object.values(error.response.data.errors).flat().join(', ')
+    }
+    alert(msg)
+  }
+}
+
+// Soumission de la vente
 const submitVente = async () => {
+  if (!canSubmit.value) return
+  
   loading.value = true
+  errorMessage.value = ''
+  
   try {
     const data = {
       client_id: form.value.client_id,
@@ -353,32 +671,20 @@ const submitVente = async () => {
     await venteService.create(data)
     router.push('/ventes')
   } catch (error) {
-    alert('Erreur: ' + (error.response?.data?.message || 'Erreur lors de l\'enregistrement'))
+    console.error('Erreur vente:', error)
+    errorMessage.value = error.response?.data?.message || 'Erreur lors de l\'enregistrement de la vente'
   } finally {
     loading.value = false
   }
 }
 
-const loadMedicaments = async () => {
-  try {
-    const response = await medicamentService.getAll({ page: 1 })
-    medicaments.value = response.data || []
-  } catch (error) {
-    console.error('Erreur chargement médicaments:', error)
-  }
-}
-
-const loadClients = async () => {
-  try {
-    const response = await clientService.getAll({ page: 1 })
-    clients.value = response.data || []
-  } catch (error) {
-    console.error('Erreur chargement clients:', error)
-  }
-}
+// Nettoyage
+onUnmounted(() => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  if (clientSearchTimeout) clearTimeout(clientSearchTimeout)
+})
 
 onMounted(() => {
-  loadMedicaments()
-  loadClients()
+  // Initialisation
 })
 </script>

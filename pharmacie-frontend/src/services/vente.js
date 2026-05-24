@@ -1,9 +1,30 @@
+// src/services/vente.js
 import api from './api'
 
 export const venteService = {
   async getAll(params = {}) {
-    const response = await api.get('/ventes', { params })
-    return response.data
+    try {
+      const response = await api.get('/ventes', { params })
+      console.log('API Response brute:', response.data) // Debug
+      
+      // La réponse de Laravel paginate est directement dans response.data
+      return {
+        success: true,
+        data: response.data.data || [],
+        current_page: response.data.current_page || 1,
+        last_page: response.data.last_page || 1,
+        total: response.data.total || 0
+      }
+    } catch (error) {
+      console.error('Erreur API ventes:', error)
+      return {
+        success: false,
+        data: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0
+      }
+    }
   },
   
   async getById(id) {

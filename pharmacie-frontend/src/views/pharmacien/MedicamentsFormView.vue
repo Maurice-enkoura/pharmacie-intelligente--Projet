@@ -22,16 +22,29 @@
           </div>
           
           <div>
-            <label class="block text-gray-700 text-sm font-medium mb-2">Forme *</label>
-            <select v-model="form.forme" class="input-field w-full" required>
-              <option value="">Sélectionner</option>
-              <option value="Comprimé">Comprimé</option>
-              <option value="Gélule">Gélule</option>
-              <option value="Sirop">Sirop</option>
-              <option value="Injectable">Injectable</option>
-              <option value="Pommade">Pommade</option>
-            </select>
-          </div>
+  <label class="block text-gray-700 text-sm font-medium mb-2">Forme *</label>
+  <select v-model="form.forme" class="input-field w-full" required>
+    <option value="">Sélectionner une forme</option>
+    <optgroup label="💊 Formes orales solides">
+      <option v-for="forme in formesOraleSolide" :key="forme" :value="forme">{{ forme }}</option>
+    </optgroup>
+    <optgroup label="🧪 Formes orales liquides">
+      <option v-for="forme in formesOraleLiquide" :key="forme" :value="forme">{{ forme }}</option>
+    </optgroup>
+    <optgroup label="💉 Formes injectables">
+      <option v-for="forme in formesInjectable" :key="forme" :value="forme">{{ forme }}</option>
+    </optgroup>
+    <optgroup label="🧴 Formes topiques">
+      <option v-for="forme in formesTopique" :key="forme" :value="forme">{{ forme }}</option>
+    </optgroup>
+    <optgroup label="👁️ Formes ophtalmiques/ORL">
+      <option v-for="forme in formesOphtalmique" :key="forme" :value="forme">{{ forme }}</option>
+    </optgroup>
+    <optgroup label="💨 Formes inhalées">
+      <option v-for="forme in formesInhalation" :key="forme" :value="forme">{{ forme }}</option>
+    </optgroup>
+  </select>
+</div>
           
           <div>
             <label class="block text-gray-700 text-sm font-medium mb-2">Dosage *</label>
@@ -90,15 +103,15 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useMedicamentStore } from '@/stores/medicament'
+import api from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
-const medicamentStore = useMedicamentStore()
 
 const isEdit = ref(false)
 const loading = ref(false)
 const categories = ref([])
+const errorMessage = ref('')
 
 const form = ref({
   nom: '',
@@ -115,9 +128,10 @@ const form = ref({
 
 const loadCategories = async () => {
   try {
+    const token = localStorage.getItem('token')
     const response = await fetch('http://127.0.0.1:8000/api/v1/categories', {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`
       }
     })
     const data = await response.json()
@@ -128,36 +142,68 @@ const loadCategories = async () => {
 }
 
 const loadMedicament = async (id) => {
-  await medicamentStore.fetchById(id)
-  const med = medicamentStore.currentMedicament
-  if (med) {
+  try {
+    const token = localStorage.getItem('token')
+    const response = await fetch(`http://127.0.0.1:8000/api/v1/medicaments/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    const med = await response.json()
+    
     form.value = {
       nom: med.nom,
       dci: med.dci,
       forme: med.forme,
       dosage: med.dosage,
       categorie_id: med.categorie_id,
-      prix_achat: med.prix_achat,
-      prix_vente: med.prix_vente,
+      prix_achat: parseFloat(med.prix_achat),
+      prix_vente: parseFloat(med.prix_vente),
       seuil_alerte: med.seuil_alerte,
       stock_actuel: med.stock_actuel,
-      ordonnance_requise: med.ordonnance_requise
+      ordonnance_requise: med.ordonnance_requise === 1 || med.ordonnance_requise === true
     }
+  } catch (error) {
+    console.error('Erreur chargement médicament:', error)
   }
 }
 
 const submitForm = async () => {
   loading.value = true
+  errorMessage.value = ''
+  
   try {
-    if (isEdit.value) {
-      await medicamentStore.update(route.params.id, form.value)
-    } else {
-      await medicamentStore.create(form.value)
+    const token = localStorage.getItem('token')
+    const url = isEdit.value 
+      ? `http://127.0.0.1:8000/api/v1/medicaments/${route.params.id}`
+      : 'http://127.0.0.1:8000/api/v1/medicaments'
+    
+    const method = isEdit.value ? 'PUT' : 'POST'
+    
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(form.value)
+    })
+    
+    const data = await response.json()
+    
+    if (!response.ok) {
+      if (data.errors) {
+        const errors = Object.values(data.errors).flat().join(', ')
+        throw new Error(errors)
+      }
+      throw new Error(data.message || 'Erreur lors de l\'enregistrement')
     }
+    
     router.push('/medicaments')
   } catch (error) {
     console.error('Erreur:', error)
-    alert('Erreur lors de l\'enregistrement')
+    errorMessage.value = error.message
+    alert(errorMessage.value)
   } finally {
     loading.value = false
   }
@@ -170,4 +216,13 @@ onMounted(() => {
   }
   loadCategories()
 })
+
+
+
+const formesOraleSolide = ['Comprimé', 'Comprimé effervescent', 'Comprimé à croquer', 'Gélule', 'Capsule', 'Gélule à libération prolongée', 'Poudre', 'Granulé', 'Sachet']
+const formesOraleLiquide = ['Sirop', 'Solution buvable', 'Suspension buvable', 'Gouttes buvables', 'Ampoule buvable']
+const formesInjectable = ['Injectable (ampoule)', 'Injectable (flacon)', 'Poudre pour injection', 'Solution pour perfusion']
+const formesTopique = ['Pommade', 'Crème', 'Gel', 'Onguent', 'Patch transdermique', 'Savon', 'Shampoing', 'Dentifrice']
+const formesOphtalmique = ['Collyre (gouttes oculaires)', 'Solution ophtalmique', 'Pommade ophtalmique', 'Spray nasal', 'Gouttes nasales']
+const formesInhalation = ['Inhalateur', 'Aérosol', 'Nébuliseur', 'Poudre pour inhalation']
 </script>

@@ -41,7 +41,12 @@ class FournisseurSeeder extends Seeder
         ];
 
         foreach ($fournisseurs as $fournisseur) {
-            Fournisseur::create($fournisseur);
+            Fournisseur::firstOrCreate(
+                ['email' => $fournisseur['email']],
+                $fournisseur
+            );
         }
+        
+        $this->command->info('Fournisseurs créés avec succès !');
     }
 }

@@ -12,7 +12,23 @@ class MedicamentSeeder extends Seeder
     public function run(): void
     {
         // Récupérer les catégories existantes
-        $categories = Categorie::all()->keyBy('nom');
+        $categories = Categorie::all();
+        
+        // Créer un tableau associatif nom => id
+        $categoriesMap = [];
+        foreach ($categories as $cat) {
+            $categoriesMap[$cat->nom] = $cat->id;
+        }
+        
+        // Vérifier que toutes les catégories existent
+        $requiredCategories = ['Antibiotique', 'Antalgique', 'Anti-inflammatoire', 'Antihypertenseur', 'Vitamines', 'Sirop', 'Dermatologique'];
+        
+        foreach ($requiredCategories as $catName) {
+            if (!isset($categoriesMap[$catName])) {
+                $this->command->error("Catégorie '$catName' non trouvée !");
+                return;
+            }
+        }
         
         $medicaments = [
             [
@@ -20,7 +36,7 @@ class MedicamentSeeder extends Seeder
                 'dci' => 'Amoxicilline',
                 'forme' => 'Gélule',
                 'dosage' => '500mg',
-                'categorie_id' => $categories['Antibiotique']->id,
+                'categorie_nom' => 'Antibiotique',
                 'stock_actuel' => 150,
                 'seuil_alerte' => 20,
                 'prix_achat' => 1500,
@@ -32,7 +48,7 @@ class MedicamentSeeder extends Seeder
                 'dci' => 'Paracétamol',
                 'forme' => 'Comprimé',
                 'dosage' => '1000mg',
-                'categorie_id' => $categories['Antalgique']->id,
+                'categorie_nom' => 'Antalgique',
                 'stock_actuel' => 500,
                 'seuil_alerte' => 50,
                 'prix_achat' => 300,
@@ -44,7 +60,7 @@ class MedicamentSeeder extends Seeder
                 'dci' => 'Ibuprofène',
                 'forme' => 'Comprimé',
                 'dosage' => '400mg',
-                'categorie_id' => $categories['Anti-inflammatoire']->id,
+                'categorie_nom' => 'Anti-inflammatoire',
                 'stock_actuel' => 200,
                 'seuil_alerte' => 30,
                 'prix_achat' => 800,
@@ -56,7 +72,7 @@ class MedicamentSeeder extends Seeder
                 'dci' => 'Nifédipine',
                 'forme' => 'Gélule',
                 'dosage' => '30mg',
-                'categorie_id' => $categories['Antihypertenseur']->id,
+                'categorie_nom' => 'Antihypertenseur',
                 'stock_actuel' => 80,
                 'seuil_alerte' => 15,
                 'prix_achat' => 2000,
@@ -68,7 +84,7 @@ class MedicamentSeeder extends Seeder
                 'dci' => 'Acide ascorbique',
                 'forme' => 'Comprimé effervescent',
                 'dosage' => '1000mg',
-                'categorie_id' => $categories['Vitamines']->id,
+                'categorie_nom' => 'Vitamines',
                 'stock_actuel' => 300,
                 'seuil_alerte' => 40,
                 'prix_achat' => 1000,
@@ -80,7 +96,7 @@ class MedicamentSeeder extends Seeder
                 'dci' => 'Dextrométhorphane',
                 'forme' => 'Sirop',
                 'dosage' => '15mg/5ml',
-                'categorie_id' => $categories['Sirop']->id,
+                'categorie_nom' => 'Sirop',
                 'stock_actuel' => 120,
                 'seuil_alerte' => 25,
                 'prix_achat' => 1200,
@@ -92,7 +108,7 @@ class MedicamentSeeder extends Seeder
                 'dci' => 'Cétirizine',
                 'forme' => 'Comprimé',
                 'dosage' => '10mg',
-                'categorie_id' => $categories['Dermatologique']->id,
+                'categorie_nom' => 'Dermatologique',
                 'stock_actuel' => 180,
                 'seuil_alerte' => 20,
                 'prix_achat' => 600,
@@ -101,13 +117,32 @@ class MedicamentSeeder extends Seeder
             ],
         ];
 
+        $fournisseurs = \App\Models\Fournisseur::all();
+        $fournisseurIds = $fournisseurs->pluck('id')->toArray();
+        
+        if (empty($fournisseurIds)) {
+            $this->command->error('Aucun fournisseur trouvé !');
+            return;
+        }
+
         foreach ($medicaments as $medicament) {
-            $med = Medicament::create($medicament);
+            $med = Medicament::create([
+                'nom' => $medicament['nom'],
+                'dci' => $medicament['dci'],
+                'forme' => $medicament['forme'],
+                'dosage' => $medicament['dosage'],
+                'categorie_id' => $categoriesMap[$medicament['categorie_nom']],
+                'stock_actuel' => $medicament['stock_actuel'],
+                'seuil_alerte' => $medicament['seuil_alerte'],
+                'prix_achat' => $medicament['prix_achat'],
+                'prix_vente' => $medicament['prix_vente'],
+                'ordonnance_requise' => $medicament['ordonnance_requise']
+            ]);
             
             // Créer un stock lot pour chaque médicament
             StockLot::create([
                 'medicament_id' => $med->id,
-                'fournisseur_id' => rand(1, 4),
+                'fournisseur_id' => $fournisseurIds[array_rand($fournisseurIds)],
                 'lot_number' => 'LOT-' . strtoupper(uniqid()),
                 'quantite_initiale' => $medicament['stock_actuel'],
                 'quantite_restante' => $medicament['stock_actuel'],
@@ -116,5 +151,7 @@ class MedicamentSeeder extends Seeder
                 'date_reception' => now()->subDays(rand(1, 30))
             ]);
         }
+        
+        $this->command->info('Médicaments créés avec succès !');
     }
 }

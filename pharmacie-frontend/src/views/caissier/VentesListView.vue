@@ -1,70 +1,63 @@
-<!-- src/views/pharmacien/CommandesListView.vue -->
+<!-- src/views/caissier/VentesListView.vue -->
 <template>
-  <div class="commandes-list">
+  <div class="ventes-list">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Commandes fournisseurs</h1>
-      <router-link to="/commandes/create" class="btn-primary">
-        + Nouvelle commande
+      <h1 class="text-2xl font-bold text-gray-800">Mes ventes</h1>
+      <router-link to="/ventes/create" class="btn-primary">
+        + Nouvelle vente
       </router-link>
     </div>
     
     <!-- Filtres -->
     <div class="card mb-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <select v-model="filters.statut" @change="search" class="input-field">
-          <option :value="null">Tous les statuts</option>
-          <option value="en_attente">En attente</option>
-          <option value="envoyee">Envoyée</option>
-          <option value="recue_partielle">Réception partielle</option>
-          <option value="recue_complete">Réception complète</option>
-        </select>
         <input type="date" v-model="filters.date_debut" @change="search" class="input-field">
         <input type="date" v-model="filters.date_fin" @change="search" class="input-field">
+        <button @click="search" class="btn-secondary">Filtrer</button>
       </div>
     </div>
     
+    <!-- Loading -->
     <div v-if="loading" class="text-center py-8">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      <p class="mt-2 text-gray-500">Chargement des commandes...</p>
+      <p class="mt-2 text-gray-500">Chargement des ventes...</p>
     </div>
     
+    <!-- Tableau -->
     <div v-else class="card overflow-x-auto">
       <table class="w-full">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-4 py-3 text-left">N° Commande</th>
-            <th class="px-4 py-3 text-left">Fournisseur</th>
+            <th class="px-4 py-3 text-left">Facture</th>
+            <th class="px-4 py-3 text-left">Client</th>
             <th class="px-4 py-3 text-left">Date</th>
             <th class="px-4 py-3 text-right">Montant</th>
-            <th class="px-4 py-3 text-center">Statut</th>
+            <th class="px-4 py-3 text-center">Paiement</th>
             <th class="px-4 py-3 text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="commande in commandes" :key="commande.id" class="border-t hover:bg-gray-50">
-            <td class="px-4 py-3 text-sm font-medium">{{ commande.numero_commande }}</td>
-            <td class="px-4 py-3 text-sm">{{ commande.fournisseur?.nom || 'N/A' }}</td>
-            <td class="px-4 py-3 text-sm">{{ formatDate(commande.date_commande) }}</td>
-            <td class="px-4 py-3 text-right font-medium">{{ formatPrice(commande.montant_total) }}</td>
+          <tr v-for="vente in ventes" :key="vente.id" class="border-t hover:bg-gray-50">
+            <td class="px-4 py-3 text-sm font-medium">{{ vente.numero_facture }}</td>
+            <td class="px-4 py-3 text-sm">
+              {{ vente.client?.prenom || '' }} {{ vente.client?.nom || '' }}
+            </td>
+            <td class="px-4 py-3 text-sm">{{ formatDate(vente.date_vente) }}</td>
+            <td class="px-4 py-3 text-right font-medium">{{ formatPrice(parseFloat(vente.montant_total)) }}</td>
             <td class="px-4 py-3 text-center">
-              <span :class="getStatutClass(commande.statut)" class="px-2 py-1 rounded-full text-xs">
-                {{ getStatutLabel(commande.statut) }}
+              <span class="px-2 py-1 rounded-full text-xs" :class="getPaiementClass(vente.mode_paiement)">
+                {{ getPaiementLabel(vente.mode_paiement) }}
               </span>
             </td>
             <td class="px-4 py-3 text-center">
-              <router-link 
-                v-if="commande.statut !== 'recue_complete'"
-                :to="`/commandes/${commande.id}/reception`" 
-                class="text-green-600 hover:text-green-800"
-              >
-                📦 Réception
+              <router-link :to="`/ventes/${vente.id}`" class="text-primary-600 hover:text-primary-800">
+                📄 Détail
               </router-link>
-              <span v-else class="text-gray-400">✓ Reçue</span>
             </td>
           </tr>
-          <tr v-if="commandes.length === 0 && !loading">
+          <tr v-if="ventes.length === 0 && !loading">
             <td colspan="6" class="text-center py-8 text-gray-500">
-              Aucune commande enregistrée
+              Aucune vente enregistrée
             </td>
           </tr>
         </tbody>
@@ -74,7 +67,7 @@
     <!-- Pagination -->
     <div v-if="pagination && pagination.total > 0" class="mt-6 flex justify-between items-center">
       <div class="text-sm text-gray-500">
-        Page {{ pagination.current_page }} sur {{ pagination.last_page }} ({{ pagination.total }} commandes)
+        Page {{ pagination.current_page }} sur {{ pagination.last_page }} ({{ pagination.total }} ventes)
       </div>
       <div class="flex space-x-2">
         <button 
@@ -100,19 +93,18 @@
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
 
-const commandes = ref([])
+const ventes = ref([])
 const loading = ref(false)
 const pagination = ref(null)
 
 const filters = ref({
-  statut: null,
   date_debut: '',
   date_fin: '',
   page: 1
 })
 
 const formatPrice = (price) => {
-  if (!price) return '0 FCFA'
+  if (!price && price !== 0) return '0 FCFA'
   return new Intl.NumberFormat('fr-SN', { style: 'currency', currency: 'XOF' }).format(price)
 }
 
@@ -121,38 +113,37 @@ const formatDate = (date) => {
   return new Date(date).toLocaleDateString('fr-FR')
 }
 
-const getStatutLabel = (statut) => {
+const getPaiementLabel = (mode) => {
   const labels = {
-    en_attente: 'En attente',
-    envoyee: 'Envoyée',
-    recue_partielle: 'Réception partielle',
-    recue_complete: 'Réception complète'
+    especes: 'Espèces',
+    orange_money: 'Orange Money',
+    wave: 'Wave',
+    carte: 'Carte'
   }
-  return labels[statut] || statut
+  return labels[mode] || mode
 }
 
-const getStatutClass = (statut) => {
+const getPaiementClass = (mode) => {
   const classes = {
-    en_attente: 'bg-yellow-100 text-yellow-700',
-    envoyee: 'bg-blue-100 text-blue-700',
-    recue_partielle: 'bg-orange-100 text-orange-700',
-    recue_complete: 'bg-green-100 text-green-700'
+    especes: 'bg-gray-100 text-gray-700',
+    orange_money: 'bg-orange-100 text-orange-700',
+    wave: 'bg-blue-100 text-blue-700',
+    carte: 'bg-purple-100 text-purple-700'
   }
-  return classes[statut] || 'bg-gray-100'
+  return classes[mode] || 'bg-gray-100'
 }
 
-const loadCommandes = async () => {
+const loadVentes = async () => {
   loading.value = true
   try {
     const token = localStorage.getItem('token')
     const params = new URLSearchParams()
     
-    if (filters.value.statut) params.append('statut', filters.value.statut)
     if (filters.value.date_debut) params.append('date_debut', filters.value.date_debut)
     if (filters.value.date_fin) params.append('date_fin', filters.value.date_fin)
     if (filters.value.page) params.append('page', filters.value.page)
     
-    const response = await fetch(`http://127.0.0.1:8000/api/v1/commandes?${params.toString()}`, {
+    const response = await fetch(`http://127.0.0.1:8000/api/v1/ventes?${params.toString()}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -164,16 +155,19 @@ const loadCommandes = async () => {
     }
     
     const data = await response.json()
-    console.log('Commandes reçues:', data) // Debug
+    console.log('Données reçues:', data) // Debug
     
-    commandes.value = data.data || []
+    // Les données sont dans data.data
+    ventes.value = data.data || []
     pagination.value = {
       current_page: data.current_page || 1,
       last_page: data.last_page || 1,
       total: data.total || 0
     }
+    
+    console.log('Ventes à afficher:', ventes.value.length) // Debug
   } catch (error) {
-    console.error('Erreur chargement commandes:', error)
+    console.error('Erreur chargement ventes:', error)
   } finally {
     loading.value = false
   }
@@ -181,17 +175,17 @@ const loadCommandes = async () => {
 
 const search = () => {
   filters.value.page = 1
-  loadCommandes()
+  loadVentes()
 }
 
 const goToPage = (page) => {
   if (page >= 1 && page <= pagination.value.last_page) {
     filters.value.page = page
-    loadCommandes()
+    loadVentes()
   }
 }
 
 onMounted(() => {
-  loadCommandes()
+  loadVentes()
 })
 </script>

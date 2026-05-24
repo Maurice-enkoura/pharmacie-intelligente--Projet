@@ -2,22 +2,30 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Categorie;
 
 class CategorieSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-    // database/seeders/CategorieSeeder.php
-public function run(): void
-{
-    $categories = ['Antibiotique', 'Antalgique', 'Anti-inflammatoire', 'Antihypertenseur', 'Vitamines', 'Sirop', 'Dermatologique'];
-    
-    foreach ($categories as $cat) {
-        Categorie::create(['nom' => $cat]);
+    public function run(): void
+    {
+        $categories = [
+            ['nom' => 'Antibiotique', 'description' => 'Médicaments contre les infections bactériennes'],
+            ['nom' => 'Antalgique', 'description' => 'Médicaments contre la douleur'],
+            ['nom' => 'Anti-inflammatoire', 'description' => 'Médicaments contre l\'inflammation'],
+            ['nom' => 'Antihypertenseur', 'description' => 'Médicaments contre l\'hypertension'],
+            ['nom' => 'Vitamines', 'description' => 'Compléments vitaminiques'],
+            ['nom' => 'Sirop', 'description' => 'Médicaments sous forme liquide'],
+            ['nom' => 'Dermatologique', 'description' => 'Médicaments pour la peau'],
+        ];
+
+        foreach ($categories as $cat) {
+            Categorie::firstOrCreate(
+                ['nom' => $cat['nom']],
+                ['description' => $cat['description']]
+            );
+        }
+        
+        $this->command->info('Catégories créées avec succès !');
     }
-}
 }

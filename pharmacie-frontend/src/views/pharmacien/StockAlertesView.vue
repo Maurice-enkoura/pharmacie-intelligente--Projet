@@ -1,38 +1,57 @@
 <!-- src/views/pharmacien/StockAlertesView.vue -->
 <template>
   <div class="stock-alertes">
-    <h1 class="text-2xl font-bold text-gray-800 mb-6">Alertes Stock</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-800">Alertes Stock</h1>
+      <button 
+        @click="refreshAlertes" 
+        class="btn-secondary text-sm flex items-center gap-1"
+      >
+        <span>🔄</span> Actualiser
+      </button>
+    </div>
     
     <!-- Stock bas -->
     <div class="card mb-6">
       <h2 class="text-lg font-semibold mb-4 flex items-center">
-        <span class="text-red-600 mr-2">⚠️</span> Stock bas ({{ stockBas.length }})
+        <span class="text-red-600 mr-2">⚠️</span> 
+        Stock bas 
+        <span class="ml-2 text-sm text-gray-500">({{ stockBas.length }})</span>
       </h2>
+      
       <div v-if="stockBas.length === 0" class="text-gray-500 py-4 text-center">
-        Aucun médicament en stock bas
+        ✅ Aucun médicament en stock bas
       </div>
+      
       <div v-else class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-2 text-left">Médicament</th>
-              <th class="px-4 py-2 text-center">Stock actuel</th>
-              <th class="px-4 py-2 text-center">Seuil alerte</th>
-              <th class="px-4 py-2 text-center">Statut</th>
-              <th class="px-4 py-2 text-center">Actions</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold">Médicament</th>
+              <th class="px-4 py-3 text-center text-sm font-semibold">Stock actuel</th>
+              <th class="px-4 py-3 text-center text-sm font-semibold">Seuil alerte</th>
+              <th class="px-4 py-3 text-center text-sm font-semibold">Statut</th>
+              <th class="px-4 py-3 text-center text-sm font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="med in stockBas" :key="med.id" class="border-t">
+            <tr v-for="med in stockBas" :key="med.id" class="border-t hover:bg-gray-50">
               <td class="px-4 py-3 font-medium">{{ med.nom }}</td>
-              <td class="px-4 py-3 text-center text-red-600 font-bold">{{ med.stock_actuel }}</td>
+              <td class="px-4 py-3 text-center">
+                <span class="text-red-600 font-bold">{{ med.stock_actuel }}</span>
+              </td>
               <td class="px-4 py-3 text-center">{{ med.seuil_alerte }}</td>
               <td class="px-4 py-3 text-center">
-                <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Rupture imminente</span>
+                <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
+                  ⚠️ Rupture imminente
+                </span>
               </td>
               <td class="px-4 py-3 text-center">
-                <button @click="goToCommande(med)" class="text-primary-600 hover:underline text-sm">
-                  Passer commande
+                <button 
+                  @click="goToCommande(med)" 
+                  class="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                >
+                  📦 Commander
                 </button>
               </td>
             </tr>
@@ -44,27 +63,31 @@
     <!-- Péremption proche -->
     <div class="card">
       <h2 class="text-lg font-semibold mb-4 flex items-center">
-        <span class="text-orange-600 mr-2">📅</span> Péremption proche ({{ peremptionProche.length }})
+        <span class="text-orange-600 mr-2">📅</span> 
+        Péremption proche 
+        <span class="ml-2 text-sm text-gray-500">({{ peremptionProche.length }})</span>
       </h2>
+      
       <div v-if="peremptionProche.length === 0" class="text-gray-500 py-4 text-center">
-        Aucun médicament avec péremption proche
+        ✅ Aucun médicament avec péremption proche
       </div>
+      
       <div v-else class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-2 text-left">Médicament</th>
-              <th class="px-4 py-2 text-left">Lot</th>
-              <th class="px-4 py-2 text-center">Quantité</th>
-              <th class="px-4 py-2 text-center">Date péremption</th>
-              <th class="px-4 py-2 text-center">Jours restants</th>
-              <th class="px-4 py-2 text-center">Statut</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold">Médicament</th>
+              <th class="px-4 py-3 text-left text-sm font-semibold">Lot</th>
+              <th class="px-4 py-3 text-center text-sm font-semibold">Quantité</th>
+              <th class="px-4 py-3 text-center text-sm font-semibold">Date péremption</th>
+              <th class="px-4 py-3 text-center text-sm font-semibold">Jours restants</th>
+              <th class="px-4 py-3 text-center text-sm font-semibold">Statut</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="lot in peremptionProche" :key="lot.id" class="border-t">
+            <tr v-for="lot in peremptionProche" :key="lot.id" class="border-t hover:bg-gray-50">
               <td class="px-4 py-3 font-medium">{{ lot.medicament?.nom }}</td>
-              <td class="px-4 py-3">{{ lot.lot_number }}</td>
+              <td class="px-4 py-3 text-sm">{{ lot.lot_number }}</td>
               <td class="px-4 py-3 text-center">{{ lot.quantite_restante }}</td>
               <td class="px-4 py-3 text-center">{{ formatDate(lot.date_peremption) }}</td>
               <td class="px-4 py-3 text-center" :class="getDaysClass(lot.date_peremption)">
@@ -80,19 +103,28 @@
         </table>
       </div>
     </div>
+    
+    <!-- Dernière mise à jour -->
+    <div class="mt-4 text-right text-xs text-gray-400">
+      Dernière mise à jour : {{ lastUpdate }}
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { stockService } from '@/services/stock'
 
 const router = useRouter()
 const stockBas = ref([])
 const peremptionProche = ref([])
+const lastUpdate = ref('')
+let refreshInterval = null
 
+// ========== FORMATAGE DATES ==========
 const formatDate = (date) => {
+  if (!date) return ''
   return new Date(date).toLocaleDateString('fr-FR')
 }
 
@@ -110,7 +142,7 @@ const getDaysClass = (date) => {
 
 const getStatus = (date) => {
   const days = getDaysLeft(date)
-  if (days <= 7) return 'Urgent'
+  if (days <= 7) return 'URGENT !'
   if (days <= 15) return 'Attention'
   return 'À surveiller'
 }
@@ -122,21 +154,47 @@ const getStatusClass = (date) => {
   return 'bg-yellow-100 text-yellow-700'
 }
 
+// ========== ACTIONS ==========
 const goToCommande = (medicament) => {
   router.push(`/commandes/create?medicament_id=${medicament.id}`)
 }
 
+const refreshAlertes = () => {
+  loadAlertes()
+}
+
+// ========== CHARGEMENT DES DONNÉES ==========
 const loadAlertes = async () => {
   try {
     const data = await stockService.getAlertes()
     stockBas.value = data.stock_bas || []
     peremptionProche.value = data.peremption_proche || []
+    lastUpdate.value = new Date().toLocaleTimeString('fr-FR')
+    
+    console.log(`📊 Alertes chargées - Stock bas: ${stockBas.value.length}, Péremption: ${peremptionProche.value.length}`)
+    
   } catch (error) {
     console.error('Erreur chargement alertes:', error)
   }
 }
 
+// ========== AUTO-REFRESH ==========
+const startAutoRefresh = () => {
+  if (refreshInterval) clearInterval(refreshInterval)
+  refreshInterval = setInterval(() => {
+    loadAlertes()
+  }, 30000) // Rafraîchir toutes les 30 secondes
+}
+
+// ========== LIFECYCLE ==========
 onMounted(() => {
   loadAlertes()
+  startAutoRefresh()
+})
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
 })
 </script>

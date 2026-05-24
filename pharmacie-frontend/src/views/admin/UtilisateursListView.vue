@@ -10,6 +10,7 @@
     
     <div v-if="loading" class="text-center py-8">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <p class="mt-2 text-gray-500">Chargement...</p>
     </div>
     
     <div v-else class="card overflow-x-auto">
@@ -35,13 +36,14 @@
             <td class="px-4 py-3 text-center text-sm">{{ formatDate(user.created_at) }}</td>
             <td class="px-4 py-3 text-center">
               <div class="flex justify-center space-x-2">
-                <button @click="editUser(user)" class="text-blue-600 hover:text-blue-800">
+                <button @click="editUser(user)" class="text-blue-600 hover:text-blue-800" title="Modifier">
                   ✏️
                 </button>
                 <button 
                   v-if="user.id !== currentUserId"
                   @click="confirmDelete(user)" 
-                  class="text-red-600 hover:text-red-800"
+                  class="text-red-600 hover:text-red-800" 
+                  title="Supprimer"
                 >
                   🗑️
                 </button>
@@ -74,15 +76,17 @@
           <div>
             <label class="block text-sm text-gray-600 mb-1">Rôle *</label>
             <select v-model="userForm.role" class="input-field w-full">
-              <option value="caissier">Caissier</option>
-              <option value="pharmacien">Pharmacien</option>
-              <option value="admin">Administrateur</option>
+              <option value="caissier">👤 Caissier</option>
+              <option value="pharmacien">💊 Pharmacien</option>
+              <option value="admin">👑 Administrateur</option>
             </select>
           </div>
         </div>
         <div class="flex justify-end space-x-3 mt-6">
           <button @click="closeModals" class="btn-secondary">Annuler</button>
-          <button @click="saveUser" class="btn-primary">Enregistrer</button>
+          <button @click="saveUser" :disabled="saving" class="btn-primary">
+            {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+          </button>
         </div>
       </div>
     </div>
@@ -104,17 +108,20 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/services/api'
 
 const authStore = useAuthStore()
 const currentUserId = ref(authStore.user?.id)
 
 const utilisateurs = ref([])
 const loading = ref(false)
+const saving = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const userToDelete = ref(null)
 const userToEdit = ref(null)
+const errorMessage = ref('')
 
 const userForm = ref({
   name: '',
@@ -125,9 +132,9 @@ const userForm = ref({
 
 const getRoleLabel = (role) => {
   const labels = {
-    admin: 'Administrateur',
-    pharmacien: 'Pharmacien',
-    caissier: 'Caissier'
+    admin: '👑 Administrateur',
+    pharmacien: '💊 Pharmacien',
+    caissier: '👤 Caissier'
   }
   return labels[role] || role
 }
@@ -142,20 +149,20 @@ const getRoleClass = (role) => {
 }
 
 const formatDate = (date) => {
+  if (!date) return ''
   return new Date(date).toLocaleDateString('fr-FR')
 }
 
 const loadUtilisateurs = async () => {
   loading.value = true
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/v1/utilisateurs', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-    utilisateurs.value = await response.json()
+    const response = await api.get('/utilisateurs')
+    utilisateurs.value = response.data
   } catch (error) {
     console.error('Erreur chargement utilisateurs:', error)
+    if (error.response?.status === 403) {
+      alert('Vous n\'avez pas les droits pour voir les utilisateurs')
+    }
   } finally {
     loading.value = false
   }
@@ -173,30 +180,50 @@ const editUser = (user) => {
 }
 
 const saveUser = async () => {
+  saving.value = true
+  errorMessage.value = ''
+  
   try {
     if (showEditModal.value) {
-      await fetch(`http://127.0.0.1:8000/api/v1/utilisateurs/${userToEdit.value.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(userForm.value)
+      // Mise à jour d'un utilisateur
+      const response = await api.put(`/utilisateurs/${userToEdit.value.id}`, {
+        name: userForm.value.name,
+        email: userForm.value.email,
+        role: userForm.value.role,
+        password: userForm.value.password || undefined
       })
+      
+      if (response.data.success === false) {
+        throw new Error(response.data.message)
+      }
+      
+      alert('✅ Utilisateur modifié avec succès')
+      
     } else {
-      await fetch('http://127.0.0.1:8000/api/v1/register', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(userForm.value)
+      // Création d'un nouvel utilisateur
+      const response = await api.post('/utilisateurs', {
+        name: userForm.value.name,
+        email: userForm.value.email,
+        password: userForm.value.password,
+        role: userForm.value.role
       })
+      
+      if (response.data.success === false) {
+        throw new Error(response.data.message)
+      }
+      
+      alert('✅ Utilisateur créé avec succès')
     }
+    
     closeModals()
     loadUtilisateurs()
+    
   } catch (error) {
-    alert('Erreur lors de l\'enregistrement')
+    console.error('Erreur:', error)
+    const message = error.response?.data?.message || error.message || 'Erreur lors de l\'enregistrement'
+    alert('❌ ' + message)
+  } finally {
+    saving.value = false
   }
 }
 
@@ -206,20 +233,24 @@ const confirmDelete = (user) => {
 }
 
 const deleteUser = async () => {
-  if (userToDelete.value) {
-    try {
-      await fetch(`http://127.0.0.1:8000/api/v1/utilisateurs/${userToDelete.value.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      showDeleteModal.value = false
-      userToDelete.value = null
-      loadUtilisateurs()
-    } catch (error) {
-      alert('Erreur lors de la suppression')
+  if (!userToDelete.value) return
+  
+  try {
+    const response = await api.delete(`/utilisateurs/${userToDelete.value.id}`)
+    
+    if (response.data.success === false) {
+      throw new Error(response.data.message)
     }
+    
+    alert('✅ Utilisateur supprimé avec succès')
+    showDeleteModal.value = false
+    userToDelete.value = null
+    loadUtilisateurs()
+    
+  } catch (error) {
+    console.error('Erreur:', error)
+    const message = error.response?.data?.message || 'Erreur lors de la suppression'
+    alert('❌ ' + message)
   }
 }
 
@@ -228,6 +259,7 @@ const closeModals = () => {
   showEditModal.value = false
   userForm.value = { name: '', email: '', password: '', role: 'caissier' }
   userToEdit.value = null
+  errorMessage.value = ''
 }
 
 onMounted(() => {
