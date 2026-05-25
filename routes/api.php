@@ -29,25 +29,23 @@ Route::prefix('v1')->group(function () {
         // ========== CATÉGORIES (tous) ==========
         Route::get('/categories', [CategorieController::class, 'index']);
         
+        // ========== EMAIL PDF ==========
+        Route::get('/ventes/{id}/send-email', [VenteController::class, 'sendEmail']);
+        Route::get('/ventes/{id}/pdf', [VenteController::class, 'generatePDF']);
+        
         // ========== MÉDICAMENTS ==========
-        // Routes accessibles à tous les utilisateurs authentifiés
         Route::get('/medicaments', [MedicamentController::class, 'index']);
         Route::get('/medicaments/{id}', [MedicamentController::class, 'show']);
         
-        // Routes pour admin et pharmacien
         Route::middleware(['role:admin,pharmacien'])->group(function () {
             Route::post('/medicaments', [MedicamentController::class, 'store']);
             Route::put('/medicaments/{id}', [MedicamentController::class, 'update']);
         });
         
-        //  ROUTES IMPORT/EXPORT - admin seulement
-        // Elles DOIVENT être avant la route avec paramètre {id}
         Route::middleware(['role:admin'])->group(function () {
             Route::get('/medicaments/export', [MedicamentController::class, 'export']);
             Route::post('/medicaments/import', [MedicamentController::class, 'import']);
             Route::get('/medicaments/template', [MedicamentController::class, 'downloadTemplate']);
-            
-            // Suppression (admin seulement)
             Route::delete('/medicaments/{id}', [MedicamentController::class, 'destroy']);
             Route::post('/medicaments/{id}/restore', [MedicamentController::class, 'restore']);
         });
@@ -61,13 +59,16 @@ Route::prefix('v1')->group(function () {
             Route::delete('/ventes/{id}/cancel', [VenteController::class, 'cancel']);
         });
         
-        // ========== CLIENTS ==========
+        // ========== CLIENTS (🔥 CORRIGÉ) ==========
+        // Tous les authentifiés peuvent voir et créer
         Route::get('/clients', [ClientController::class, 'index']);
         Route::get('/clients/{id}', [ClientController::class, 'show']);
+        Route::post('/clients', [ClientController::class, 'store']);  // 🔥 TOUT LE MONDE
         
+        // Seul admin et pharmacien peuvent modifier et supprimer
         Route::middleware(['role:admin,pharmacien'])->group(function () {
-            Route::post('/clients', [ClientController::class, 'store']);
             Route::put('/clients/{id}', [ClientController::class, 'update']);
+            Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
         });
         
         // ========== FOURNISSEURS ==========

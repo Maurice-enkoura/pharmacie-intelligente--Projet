@@ -124,58 +124,122 @@
           </div>
           
           <!-- Tableau panier -->
-          <div v-if="panier.length > 0" class="overflow-x-auto">
-            <table class="w-full">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Médicament</th>
-                  <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Prix unitaire</th>
-                  <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Quantité</th>
-                  <th class="px-4 py-3 text-right text-sm font-semibold text-gray-600">Sous-total</th>
-                  <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(ligne, index) in panier" :key="index" class="border-t hover:bg-gray-50">
-                  <td class="px-4 py-3">
-                    <div>
-                      <span class="font-medium text-gray-800">{{ ligne.medicament.nom }}</span>
-                      <div class="text-xs text-gray-400 mt-0.5">{{ ligne.medicament.dci }} - {{ ligne.medicament.dosage }}</div>
-                    </div>
-                  </td>
-                  <td class="px-4 py-3 text-center">{{ formatPrice(ligne.prix_unitaire) }}</td>
-                  <td class="px-4 py-3 text-center">
-                    <input 
-                      type="number" 
-                      v-model="ligne.quantite" 
-                      @change="updateLigne(ligne)"
-                      min="1"
-                      :max="ligne.medicament.stock_actuel"
-                      class="w-20 text-center border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    >
-                  </td>
-                  <td class="px-4 py-3 text-right font-medium">{{ formatPrice(ligne.sous_total) }}</td>
-                  <td class="px-4 py-3 text-center">
-                    <button @click="removeLigne(index)" class="text-red-500 hover:text-red-700 transition-colors" title="Supprimer">
-                      🗑️
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot class="bg-gray-50 border-t">
-                <tr>
-                  <td colspan="3" class="px-4 py-3 text-right font-semibold">Total :</td>
-                  <td class="px-4 py-3 text-right text-xl font-bold text-primary-600">{{ formatPrice(total) }}</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+          <!-- Tableau panier - version corrigée -->
+<div v-if="panier.length > 0" class="overflow-x-auto">
+  <table class="w-full">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Médicament</th>
+        <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Prix unitaire</th>
+        <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Quantité</th>
+        <th class="px-4 py-3 text-right text-sm font-semibold text-gray-600">Sous-total</th>
+        <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="(ligne, index) in panier" :key="index" class="border-t hover:bg-gray-50">
+        <td class="px-4 py-3">
+          <div>
+            <span class="font-medium text-gray-800">{{ ligne.medicament.nom }}</span>
+            <div class="text-xs text-gray-400 mt-0.5">{{ ligne.medicament.dci }} - {{ ligne.medicament.dosage }}</div>
           </div>
+        </td>
+        <td class="px-4 py-3 text-center">{{ formatPrice(ligne.prix_unitaire) }}</td>
+        <td class="px-4 py-3 text-center">
+          <input 
+            type="number" 
+            v-model="ligne.quantite" 
+            @change="updateLigne(ligne)"
+            min="1"
+            :max="ligne.medicament.stock_actuel"
+            class="w-20 text-center border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+        </td>
+        <td class="px-4 py-3 text-right font-medium">{{ formatPrice(ligne.sous_total) }}</td>
+        <td class="px-4 py-3 text-center">
+          <button @click="removeLigne(index)" class="text-red-500 hover:text-red-700 transition-colors" title="Supprimer">
+            🗑️
+          </button>
+        </td>
+      </tr>
+    </tbody>
+    <tfoot class="bg-gray-50 border-t">
+      <tr>
+        <td colspan="3" class="px-4 py-3 text-right font-semibold">Total :</td>
+        <td class="px-4 py-3 text-right text-xl font-bold text-primary-600">{{ formatPrice(total) }}</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
           
           <div v-else class="text-center py-12">
             <div class="text-5xl mb-3">🛒</div>
             <p class="text-gray-500">Panier vide</p>
             <p class="text-sm text-gray-400">Recherchez et ajoutez des médicaments</p>
+          </div>
+        </div>
+        
+        <!-- ==================== TABLEAU DES VENTES DU CAISSIER ==================== -->
+        <div class="card mt-6">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold flex items-center gap-2">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+              Mes ventes aujourd'hui
+            </h2>
+            <button @click="loadMesVentes" class="text-sm text-primary-600 hover:underline flex items-center gap-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              Actualiser
+            </button>
+          </div>
+          
+          <div v-if="loadingVentes" class="text-center py-4">
+            <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
+          </div>
+          
+          <div v-else-if="mesVentes.length === 0" class="text-center py-8 text-gray-500">
+            <svg class="w-12 h-12 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p>Aucune vente enregistrée aujourd'hui</p>
+          </div>
+          
+          <div v-else class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left">Facture</th>
+                  <th class="px-3 py-2 text-left">Client</th>
+                  <th class="px-3 py-2 text-center">Heure</th>
+                  <th class="px-3 py-2 text-right">Montant</th>
+                  <th class="px-3 py-2 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="vente in mesVentes" :key="vente.id" class="border-t hover:bg-gray-50">
+                  <td class="px-3 py-2 font-medium">{{ vente.numero_facture }}</td>
+                  <td class="px-3 py-2">{{ vente.client?.prenom }} {{ vente.client?.nom }}</td>
+                  <td class="px-3 py-2 text-center">{{ formatTime(vente.created_at) }}</td>
+                  <td class="px-3 py-2 text-right font-medium">{{ formatPrice(vente.montant_total) }}</td>
+                  <td class="px-3 py-2 text-center">
+                    <router-link :to="`/ventes/${vente.id}`" class="text-primary-600 hover:text-primary-800" title="Voir détails">
+                      📄
+                    </router-link>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot class="bg-gray-50 border-t">
+  <tr>
+    <td colspan="3" class="px-4 py-3 text-right font-semibold">Total :</td>
+    <td class="px-4 py-3 text-right text-xl font-bold text-primary-600">{{ formatPrice(total) }}</td>
+    <td></td>
+  </tr>
+</tfoot>
+            </table>
           </div>
         </div>
       </div>
@@ -208,19 +272,18 @@
                 <div class="text-sm text-gray-500">{{ client.telephone }}</div>
                 <div v-if="client.email" class="text-xs text-gray-400">{{ client.email }}</div>
               </div>
+              <div v-if="clientSearchResults.length === 0 && clientSearchQuery" class="p-3 text-center text-gray-500">
+                Aucun client trouvé
+              </div>
             </div>
           </div>
           
           <button 
-            v-if="isAdmin || isPharmacien"
             @click="showNewClientModal = true" 
             class="text-primary-600 text-sm mt-2 hover:underline flex items-center gap-1"
           >
-            ➕ Créer un nouveau client
+            ➕ Nouveau client
           </button>
-          <p v-else class="text-xs text-gray-400 mt-2">
-            📌 Contactez l'administrateur pour ajouter un client
-          </p>
         </div>
         
         <!-- Client sélectionné -->
@@ -230,6 +293,7 @@
               <p class="text-xs text-green-600 font-medium">Client sélectionné</p>
               <p class="font-semibold text-gray-800">{{ selectedClient.prenom }} {{ selectedClient.nom }}</p>
               <p class="text-sm text-gray-600">{{ selectedClient.telephone }}</p>
+              <p v-if="selectedClient.email" class="text-xs text-gray-500">{{ selectedClient.email }}</p>
             </div>
             <button @click="clearSelectedClient" class="text-gray-400 hover:text-gray-600" title="Changer de client">
               🔄
@@ -252,15 +316,24 @@
           </div>
         </div>
         
-        <!-- Référence ordonnance -->
+        <!-- Référence ordonnance (générée automatiquement) -->
         <div v-if="form.type_vente === 'avec_ordonnance'" class="mb-4">
           <label class="block text-gray-700 text-sm font-medium mb-2">Référence ordonnance</label>
-          <input 
-            type="text" 
-            v-model="form.ordonnance_ref" 
-            class="input-field w-full" 
-            placeholder="ex: ORD-2025-001"
-          >
+          <div class="relative">
+            <input 
+              type="text" 
+              v-model="form.ordonnance_ref" 
+              class="input-field w-full bg-gray-50" 
+              readonly
+              disabled
+            >
+            <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">✅ Référence générée automatiquement</p>
         </div>
         
         <!-- Mode de paiement -->
@@ -342,7 +415,7 @@
     </div>
     
     <!-- ==================== MODAL NOUVEAU CLIENT ==================== -->
-    <div v-if="showNewClientModal && (isAdmin || isPharmacien)" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div v-if="showNewClientModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-xl font-semibold text-gray-800">➕ Nouveau client</h3>
@@ -371,9 +444,15 @@
             <input v-model="newClient.email" type="email" placeholder="client@email.com" class="input-field w-full">
           </div>
           
-          <div>
-            <label class="block text-sm text-gray-600 mb-1">Adresse</label>
-            <textarea v-model="newClient.adresse" rows="2" placeholder="Dakar, Sicap Liberté" class="input-field w-full"></textarea>
+          <template v-if="isAdmin || isPharmacien">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">Adresse</label>
+              <textarea v-model="newClient.adresse" rows="2" placeholder="Dakar, Sicap Liberté" class="input-field w-full"></textarea>
+            </div>
+          </template>
+          
+          <div v-if="isCaissier" class="text-xs text-gray-400 bg-gray-50 p-2 rounded">
+            💡 L'email permet d'envoyer les factures électroniques au client.
           </div>
         </div>
         
@@ -387,20 +466,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { venteService } from '@/services/vente'
 import { medicamentService } from '@/services/medicament'
 import { clientService } from '@/services/client'
 
-// Router & Auth
 const router = useRouter()
 const authStore = useAuthStore()
 
 // Rôles
 const isAdmin = computed(() => authStore.isAdmin)
 const isPharmacien = computed(() => authStore.isPharmacien)
+const isCaissier = computed(() => authStore.isCaissier)
 
 // États recherche médicaments
 const searchQuery = ref('')
@@ -434,6 +513,10 @@ const loading = ref(false)
 const showNewClientModal = ref(false)
 const errorMessage = ref('')
 
+// États ventes du caissier
+const mesVentes = ref([])
+const loadingVentes = ref(false)
+
 // Nouveau client
 const newClient = ref({
   nom: '',
@@ -441,6 +524,25 @@ const newClient = ref({
   telephone: '',
   email: '',
   adresse: ''
+})
+
+// 🔥 GÉNÉRER UNE RÉFÉRENCE ORDONNANCE UNIQUE
+const generateOrdonnanceRef = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+  return `ORD-${year}${month}${day}-${random}`
+}
+
+// 🔥 SURVEILLER LE CHANGEMENT DE TYPE DE VENTE
+watch(() => form.value.type_vente, (newValue) => {
+  if (newValue === 'avec_ordonnance' && !form.value.ordonnance_ref) {
+    form.value.ordonnance_ref = generateOrdonnanceRef()
+  } else if (newValue === 'sans_ordonnance') {
+    form.value.ordonnance_ref = null
+  }
 })
 
 // ==================== COMPUTED ====================
@@ -460,6 +562,10 @@ const quantiteTotale = computed(() => {
   return panier.value.reduce((sum, ligne) => sum + (ligne.quantite || 0), 0)
 })
 
+const totalVentesJour = computed(() => {
+  return mesVentes.value.reduce((sum, vente) => sum + parseFloat(vente.montant_total), 0)
+})
+
 const canSubmit = computed(() => {
   return form.value.client_id && 
          panier.value.length > 0 && 
@@ -471,6 +577,29 @@ const canSubmit = computed(() => {
 const formatPrice = (price) => {
   if (!price && price !== 0) return '0 FCFA'
   return new Intl.NumberFormat('fr-SN', { style: 'currency', currency: 'XOF' }).format(price)
+}
+
+const formatTime = (date) => {
+  if (!date) return ''
+  return new Date(date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+// Charger les ventes du caissier pour aujourd'hui
+const loadMesVentes = async () => {
+  loadingVentes.value = true
+  try {
+    const token = localStorage.getItem('token')
+    const today = new Date().toISOString().split('T')[0]
+    const response = await fetch(`http://127.0.0.1:8000/api/v1/ventes?date_debut=${today}&date_fin=${today}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    const data = await response.json()
+    mesVentes.value = data.data || []
+  } catch (error) {
+    console.error('Erreur chargement ventes:', error)
+  } finally {
+    loadingVentes.value = false
+  }
 }
 
 // Recherche médicaments avec debounce
@@ -528,14 +657,12 @@ const clearSelectedMedicament = () => {
 const addSelectedMedicament = () => {
   if (!selectedMedicament.value || quantite.value < 1) return
   
-  // Vérifier ordonnance
   if (selectedMedicament.value.ordonnance_requise && form.value.type_vente === 'sans_ordonnance') {
     errorMessage.value = `⚠️ ${selectedMedicament.value.nom} nécessite une ordonnance`
     setTimeout(() => { errorMessage.value = '' }, 3000)
     return
   }
   
-  // Vérifier stock
   if (selectedMedicament.value.stock_actuel < quantite.value) {
     errorMessage.value = `❌ Stock insuffisant pour ${selectedMedicament.value.nom}`
     setTimeout(() => { errorMessage.value = '' }, 3000)
@@ -563,7 +690,6 @@ const addSelectedMedicament = () => {
     })
   }
   
-  // Réinitialiser
   clearSelectedMedicament()
   quantite.value = 1
   errorMessage.value = ''
@@ -584,7 +710,6 @@ const removeLigne = (index) => {
   panier.value.splice(index, 1)
 }
 
-// Recherche client avec debounce
 const onClientSearchInput = () => {
   if (clientSearchTimeout) clearTimeout(clientSearchTimeout)
   clientSearchTimeout = setTimeout(() => searchClients(), 300)
@@ -620,7 +745,6 @@ const clearSelectedClient = () => {
   clientSearchQuery.value = ''
 }
 
-// Modal client
 const closeNewClientModal = () => {
   showNewClientModal.value = false
   newClient.value = { nom: '', prenom: '', telephone: '', email: '', adresse: '' }
@@ -637,18 +761,13 @@ const saveNewClient = async () => {
     const createdClient = response.data || response
     selectClient(createdClient)
     closeNewClientModal()
+    alert('✅ Client créé avec succès !')
   } catch (error) {
     console.error('Erreur création client:', error)
-    let msg = 'Erreur lors de la création du client'
-    if (error.response?.data?.message) msg = error.response.data.message
-    if (error.response?.data?.errors) {
-      msg = Object.values(error.response.data.errors).flat().join(', ')
-    }
-    alert(msg)
+    alert('❌ Erreur lors de la création du client')
   }
 }
 
-// Soumission de la vente
 const submitVente = async () => {
   if (!canSubmit.value) return
   
@@ -669,6 +788,7 @@ const submitVente = async () => {
     }
     
     await venteService.create(data)
+    await loadMesVentes()
     router.push('/ventes')
   } catch (error) {
     console.error('Erreur vente:', error)
@@ -678,13 +798,12 @@ const submitVente = async () => {
   }
 }
 
-// Nettoyage
+onMounted(() => {
+  loadMesVentes()
+})
+
 onUnmounted(() => {
   if (searchTimeout) clearTimeout(searchTimeout)
   if (clientSearchTimeout) clearTimeout(clientSearchTimeout)
-})
-
-onMounted(() => {
-  // Initialisation
 })
 </script>

@@ -2,21 +2,32 @@
 <template>
   <div class="stock-entrees">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Entrées de stock</h1>
-      <button @click="showModal = true" class="btn-primary">
-        + Nouvelle entrée
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">Entrées de stock</h1>
+        <p class="text-sm text-gray-500 mt-1">Gérez les entrées de stock de votre pharmacie</p>
+      </div>
+      <button @click="showModal = true" class="btn-primary flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Nouvelle entrée
       </button>
     </div>
     
     <!-- Filtres -->
     <div class="card mb-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <select v-model="filters.medicament_id" @change="loadEntrees" class="input-field">
-          <option :value="null">Tous les médicaments</option>
-          <option v-for="med in medicaments" :key="med.id" :value="med.id">
-            {{ med.nom }} ({{ med.dosage }})
-          </option>
-        </select>
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <select v-model="filters.medicament_id" @change="loadEntrees" class="input-field w-full pl-10">
+            <option :value="null">Tous les médicaments</option>
+            <option v-for="med in medicaments" :key="med.id" :value="med.id">
+              {{ med.nom }} ({{ med.dosage }})
+            </option>
+          </select>
+        </div>
         <input type="date" v-model="filters.date_debut" @change="loadEntrees" class="input-field">
         <input type="date" v-model="filters.date_fin" @change="loadEntrees" class="input-field">
       </div>
@@ -32,22 +43,22 @@
       <table class="w-full">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-4 py-3 text-left">Date</th>
-            <th class="px-4 py-3 text-left">Médicament</th>
-            <th class="px-4 py-3 text-left">Lot</th>
-            <th class="px-4 py-3 text-center">Quantité</th>
-            <th class="px-4 py-3 text-right">Prix unitaire</th>
-            <th class="px-4 py-3 text-right">Total</th>
-            <th class="px-4 py-3 text-center">Date péremption</th>
-            <th class="px-4 py-3 text-left">Fournisseur</th>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Date</th>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Médicament</th>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Lot</th>
+            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Quantité</th>
+            <th class="px-4 py-3 text-right text-sm font-semibold text-gray-600">Prix unitaire</th>
+            <th class="px-4 py-3 text-right text-sm font-semibold text-gray-600">Total</th>
+            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Date péremption</th>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Fournisseur</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="entree in entrees" :key="entree.id" class="border-t hover:bg-gray-50">
+          <tr v-for="entree in entrees" :key="entree.id" class="border-t hover:bg-gray-50 transition-colors">
             <td class="px-4 py-3 text-sm">{{ formatDate(entree.date_reception) }}</td>
-            <td class="px-4 py-3 text-sm font-medium">{{ entree.medicament?.nom }}</td>
-            <td class="px-4 py-3 text-sm">{{ entree.lot_number }}</td>
-            <td class="px-4 py-3 text-center text-sm">{{ entree.quantite_restante }}</td>
+            <td class="px-4 py-3 text-sm font-medium text-gray-800">{{ entree.medicament?.nom }}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">{{ entree.lot_number }}</td>
+            <td class="px-4 py-3 text-center text-sm font-medium">{{ entree.quantite_restante }}</td>
             <td class="px-4 py-3 text-right text-sm">{{ formatPrice(entree.prix_achat_unitaire) }}</td>
             <td class="px-4 py-3 text-right text-sm font-medium">{{ formatPrice(entree.prix_achat_unitaire * entree.quantite_restante) }}</td>
             <td class="px-4 py-3 text-center">
@@ -61,7 +72,7 @@
         <tfoot class="bg-gray-50">
           <tr>
             <td colspan="5" class="px-4 py-3 text-right font-bold">Total entrées :</td>
-            <td class="px-4 py-3 text-right font-bold">{{ formatPrice(totalEntrees) }}</td>
+            <td class="px-4 py-3 text-right font-bold text-green-600">{{ formatPrice(totalEntrees) }}</td>
             <td colspan="2"></td>
           </tr>
         </tfoot>
@@ -69,7 +80,7 @@
     </div>
     
     <!-- Pagination -->
-    <div v-if="pagination" class="mt-6 flex justify-between items-center">
+    <div v-if="pagination && pagination.total > 0" class="mt-6 flex justify-between items-center">
       <div class="text-sm text-gray-500">
         {{ pagination.total }} entrées
       </div>
@@ -77,42 +88,82 @@
         <button 
           @click="goToPage(pagination.current_page - 1)" 
           :disabled="pagination.current_page <= 1"
-          class="px-3 py-1 border rounded-lg disabled:opacity-50"
+          class="px-3 py-1 border rounded-lg disabled:opacity-50 hover:bg-gray-100 transition-colors flex items-center gap-1"
         >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
           Précédent
         </button>
         <button 
           @click="goToPage(pagination.current_page + 1)" 
           :disabled="pagination.current_page >= pagination.last_page"
-          class="px-3 py-1 border rounded-lg disabled:opacity-50"
+          class="px-3 py-1 border rounded-lg disabled:opacity-50 hover:bg-gray-100 transition-colors flex items-center gap-1"
         >
           Suivant
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
         </button>
       </div>
     </div>
     
-    <!-- Modal nouvelle entrée -->
+    <!-- Modal nouvelle entrée avec barre de recherche -->
     <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-semibold mb-4">Nouvelle entrée de stock</h3>
+      <div class="bg-white rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">📦 Nouvelle entrée de stock</h3>
+          <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
         
         <form @submit.prevent="submitEntree">
           <div class="space-y-4">
+            <!-- Recherche Médicament -->
             <div>
               <label class="block text-gray-700 text-sm font-medium mb-2">Médicament *</label>
-              <select v-model="newEntree.medicament_id" class="input-field w-full" required>
-                <option :value="null">Sélectionner</option>
-                <option v-for="med in medicaments" :key="med.id" :value="med.id">
-                  {{ med.nom }} - {{ med.dosage }} (Stock: {{ med.stock_actuel }})
+              <div class="relative">
+                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input 
+                  type="text"
+                  v-model="medicamentSearch"
+                  @input="filterMedicaments"
+                  placeholder="Rechercher un médicament..."
+                  class="input-field w-full pl-10"
+                >
+              </div>
+              <select v-model="newEntree.medicament_id" class="input-field w-full mt-2" required size="5" style="height: auto;">
+                <option :value="null">-- Sélectionner un médicament --</option>
+                <option v-for="med in filteredMedicaments" :key="med.id" :value="med.id" class="py-2">
+                  {{ med.nom }} - {{ med.dosage }} 
+                  <span class="text-gray-400 text-xs ml-2">(Stock: {{ med.stock_actuel }})</span>
                 </option>
               </select>
             </div>
             
+            <!-- Recherche Fournisseur -->
             <div>
               <label class="block text-gray-700 text-sm font-medium mb-2">Fournisseur *</label>
-              <select v-model="newEntree.fournisseur_id" class="input-field w-full" required>
-                <option :value="null">Sélectionner</option>
-                <option v-for="four in fournisseurs" :key="four.id" :value="four.id">
+              <div class="relative">
+                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input 
+                  type="text"
+                  v-model="fournisseurSearch"
+                  @input="filterFournisseurs"
+                  placeholder="Rechercher un fournisseur..."
+                  class="input-field w-full pl-10"
+                >
+              </div>
+              <select v-model="newEntree.fournisseur_id" class="input-field w-full mt-2" required size="5" style="height: auto;">
+                <option :value="null">-- Sélectionner un fournisseur --</option>
+                <option v-for="four in filteredFournisseurs" :key="four.id" :value="four.id" class="py-2">
                   {{ four.nom }}
                 </option>
               </select>
@@ -120,53 +171,85 @@
             
             <div>
               <label class="block text-gray-700 text-sm font-medium mb-2">Numéro de lot *</label>
-              <input 
-                type="text" 
-                v-model="newEntree.lot_number" 
-                class="input-field w-full" 
-                required
-                placeholder="LOT-2025-001"
-              >
+              <div class="relative">
+                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                </svg>
+                <input 
+                  type="text" 
+                  v-model="newEntree.lot_number" 
+                  class="input-field w-full pl-10" 
+                  required
+                  placeholder="LOT-2025-001"
+                >
+              </div>
             </div>
             
-            <div>
-              <label class="block text-gray-700 text-sm font-medium mb-2">Quantité *</label>
-              <input 
-                type="number" 
-                v-model="newEntree.quantite" 
-                class="input-field w-full" 
-                required
-                min="1"
-              >
-            </div>
-            
-            <div>
-              <label class="block text-gray-700 text-sm font-medium mb-2">Prix d'achat unitaire (FCFA) *</label>
-              <input 
-                type="number" 
-                v-model="newEntree.prix_achat" 
-                class="input-field w-full" 
-                required
-                min="0"
-                step="1"
-              >
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-gray-700 text-sm font-medium mb-2">Quantité *</label>
+                <div class="relative">
+                  <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                  </svg>
+                  <input 
+                    type="number" 
+                    v-model="newEntree.quantite" 
+                    class="input-field w-full pl-10" 
+                    required
+                    min="1"
+                  >
+                </div>
+              </div>
+              
+              <div>
+                <label class="block text-gray-700 text-sm font-medium mb-2">Prix d'achat (FCFA) *</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs">CFA</span>
+                  <input 
+                    type="number" 
+                    v-model="newEntree.prix_achat" 
+                    class="input-field w-full pl-12" 
+                    required
+                    min="0"
+                    step="1"
+                  >
+                </div>
+              </div>
             </div>
             
             <div>
               <label class="block text-gray-700 text-sm font-medium mb-2">Date de péremption *</label>
-              <input 
-                type="date" 
-                v-model="newEntree.date_peremption" 
-                class="input-field w-full" 
-                required
-                :min="minDate"
-              >
+              <div class="relative">
+                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <input 
+                  type="date" 
+                  v-model="newEntree.date_peremption" 
+                  class="input-field w-full pl-10" 
+                  required
+                  :min="minDate"
+                >
+              </div>
             </div>
           </div>
           
           <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
-            <button type="button" @click="closeModal" class="btn-secondary">Annuler</button>
-            <button type="submit" :disabled="submitting" class="btn-primary">
+            <button type="button" @click="closeModal" class="btn-secondary flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+              Annuler
+            </button>
+            <button type="submit" :disabled="submitting" class="btn-primary flex items-center gap-2">
+              <svg v-if="submitting" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
               {{ submitting ? 'Enregistrement...' : 'Enregistrer' }}
             </button>
           </div>
@@ -190,6 +273,10 @@ const submitting = ref(false)
 const showModal = ref(false)
 const pagination = ref(null)
 
+// Recherche dans le modal
+const medicamentSearch = ref('')
+const fournisseurSearch = ref('')
+
 const filters = ref({
   medicament_id: null,
   date_debut: '',
@@ -204,6 +291,23 @@ const newEntree = ref({
   quantite: 1,
   prix_achat: 0,
   date_peremption: ''
+})
+
+const filteredMedicaments = computed(() => {
+  if (!medicamentSearch.value) return medicaments.value
+  const search = medicamentSearch.value.toLowerCase()
+  return medicaments.value.filter(med => 
+    med.nom.toLowerCase().includes(search) || 
+    med.dci?.toLowerCase().includes(search)
+  )
+})
+
+const filteredFournisseurs = computed(() => {
+  if (!fournisseurSearch.value) return fournisseurs.value
+  const search = fournisseurSearch.value.toLowerCase()
+  return fournisseurs.value.filter(four => 
+    four.nom.toLowerCase().includes(search)
+  )
 })
 
 const minDate = computed(() => {
@@ -237,7 +341,6 @@ const loadEntrees = async () => {
   loading.value = true
   try {
     const response = await stockService.getHistorique(filters.value.medicament_id)
-    // Adapter selon la structure de l'API
     entrees.value = response.entrees || []
     pagination.value = {
       current_page: 1,
@@ -295,11 +398,11 @@ const submitEntree = async () => {
     
     closeModal()
     loadEntrees()
-    loadMedicaments() // Recharger pour mettre à jour les stocks
-    alert('Entrée de stock enregistrée avec succès')
+    loadMedicaments()
+    alert('✅ Entrée de stock enregistrée avec succès')
   } catch (error) {
     console.error('Erreur:', error)
-    alert('Erreur lors de l\'enregistrement')
+    alert('❌ Erreur lors de l\'enregistrement')
   } finally {
     submitting.value = false
   }
@@ -307,6 +410,8 @@ const submitEntree = async () => {
 
 const closeModal = () => {
   showModal.value = false
+  medicamentSearch.value = ''
+  fournisseurSearch.value = ''
   newEntree.value = {
     medicament_id: null,
     fournisseur_id: null,

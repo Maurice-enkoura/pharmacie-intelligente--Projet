@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-
+use Illuminate\Support\Facades\Validator;
 class ClientController extends Controller
 {
     public function index(Request $request)
@@ -33,25 +34,37 @@ class ClientController extends Controller
         return response()->json($client);
     }
     
+    /**
+     * 🔥 CRÉER UN CLIENT
+     * - Tout le monde peut créer (Admin, Pharmacien, Caissier)
+     * - L'email est optionnel mais recommandé pour l'envoi de factures
+     */
     public function store(Request $request)
     {
         try {
-            $request->validate([
+            // Règles de base pour tous
+            $rules = [
                 'nom' => 'required|string|max:255',
                 'prenom' => 'required|string|max:255',
                 'telephone' => 'required|string|unique:clients,telephone',
-                'email' => 'nullable|email|unique:clients,email',
-                'adresse' => 'nullable|string',
-                'medicaments_chroniques' => 'nullable|string'
-            ]);
+                'email' => 'nullable|email|unique:clients,email',  // Optionnel mais recommandé
+            ];
+            
+            // Champs supplémentaires pour admin et pharmacien
+            if (Auth()->user()->role !== 'caissier') {
+                $rules['adresse'] = 'nullable|string';
+                $rules['medicaments_chroniques'] = 'nullable|string';
+            }
+            
+            $request->validate($rules);
             
             $client = Client::create([
                 'nom' => $request->nom,
                 'prenom' => $request->prenom,
                 'telephone' => $request->telephone,
-                'email' => $request->email,
-                'adresse' => $request->adresse,
-                'medicaments_chroniques' => $request->medicaments_chroniques
+                'email' => $request->email ?? null,
+                'adresse' => $request->adresse ?? null,
+                'medicaments_chroniques' => $request->medicaments_chroniques ?? null
             ]);
             
             return response()->json([
@@ -74,9 +87,21 @@ class ClientController extends Controller
         }
     }
     
+    /**
+     * MODIFIER UN CLIENT
+     * - Seul admin et pharmacien peuvent modifier
+     */
     public function update(Request $request, $id)
     {
         try {
+            // Vérifier si l'utilisateur a le droit
+            if (Auth()->user()->role === 'caissier') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Non autorisé - Seul l\'administrateur ou le pharmacien peut modifier un client'
+                ], 403);
+            }
+            
             $client = Client::findOrFail($id);
             
             $request->validate([
@@ -104,9 +129,20 @@ class ClientController extends Controller
         }
     }
     
+    /**
+     * SUPPRIMER UN CLIENT
+     * - Seul admin peut supprimer
+     */
     public function destroy($id)
     {
         try {
+            if (Auth()->user()->role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Non autorisé - Seul l\'administrateur peut supprimer un client'
+                ], 403);
+            }
+            
             $client = Client::findOrFail($id);
             $client->delete();
             
